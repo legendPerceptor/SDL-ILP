@@ -50,17 +50,18 @@ class Environment:
             [OpCode.Peel, OpCode.Transfer, OpCode.GetPlate],
             [OpCode.GetPlate, OpCode.Transfer, OpCode.Seal, OpCode.Transfer, OpCode.Peel]
         ]
+        self.number_of_slots = sum(len(job) for job in self.jobs)
 
 def ILP(env: Environment):
     # Create the 'prob' variable to contain the problem data
     prob = pulp.LpProblem("The Production Problem", pulp.LpMinimize)
 
     jo = {(j, o) for j in range(len(env.jobs)) for o in range(len(env.jobs[j]))}
-    number_of_slots = sum(len(job) for job in env.jobs)
+    number_of_slots = env.number_of_slots
     ms = {(m, s) for m in range(len(env.machines)) for s in range(number_of_slots)}
-    b = pulp.LpVariable.dicts("Joboperations", jo, cat=pulp.LpInteger)
-    t = pulp.LpVariable.dicts("MachineSlots", ms, cat=pulp.LpInteger)
-    SP = pulp.LpVariable("The Makespan", cat=pulp.LpInteger)
+    b = pulp.LpVariable.dicts("Joboperations", jo, lowBound=0, upBound=None, cat=pulp.LpInteger)
+    t = pulp.LpVariable.dicts("MachineSlots", ms, lowBound=0, upBound=None, cat=pulp.LpInteger)
+    SP = pulp.LpVariable("The Makespan", lowBound=0, upBound=None, cat=pulp.LpInteger)
     prob += SP # The optimization goal
 
     # use the maximum possible number of slots for every machine
@@ -74,9 +75,10 @@ def ILP(env: Environment):
     x = pulp.LpVariable.dicts("MachineOperations", xs, cat=pulp.LpBinary)
 
     for j in range(len(env.jobs)):
-        for o in range(len(env.jobs[j])):
-            # Constraint 1a: The makespan must be greater than the end time of each job
-            prob += b[(j, o)] + env.operations_dict[env.jobs[j][o]].duration <= SP
+        # for o in range(len(env.jobs[j])):›
+        # Constraint 1a: The makespan must be greater than the end time of each job
+        o = len(env.jobs[j]) - 1
+        prob += b[(j, o)] + env.operations_dict[env.jobs[j][o]].duration <= SP
 
     for j in range(len(env.jobs)):
         for o in range(len(env.jobs[j])):        
@@ -91,7 +93,7 @@ def ILP(env: Environment):
                     # Constraint 1c: Each machine can only do one operation at a time
                     if s < number_of_slots - 1:
                         prob += t[(m, s)] +  x[(m, s, j, o)] * env.operations_dict[env.jobs[j][o]].duration <= t[(m, s+1)]
-                        
+
     for m in range(len(env.machines)):
         for s in range(number_of_slots):
             for j in range(len(env.jobs)):
@@ -132,3 +134,10 @@ if __name__ == '__main__':
     SP, b ,t = ILP(env)
     print("ILP result: ", SP, b, t)
     print(f"The Makespan : {SP.value()}")
+    for j in range(len(env.jobs)):
+        for o in range(len(env.jobs[j])):
+            print(f"b[{j},{o}] = {b[(j, o)].value()}")
+    
+    for m in range(len(env.machines)):
+        for s in range(env.number_of_slots):
+            print(f"t[{m},{s}] = {t[(m, s)].value()}")
