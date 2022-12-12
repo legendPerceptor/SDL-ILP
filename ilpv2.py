@@ -77,6 +77,9 @@ def ILP(env: Environment):
         for o in range(len(env.jobs[j])):
             # Constraint 1a: The makespan must be greater than the end time of each job
             prob += b[(j, o)] + env.operations_dict[env.jobs[j][o]].duration <= SP
+
+    for j in range(len(env.jobs)):
+        for o in range(len(env.jobs[j])):        
             # Constraint 1b: Each job must have its operation performed in order
             if o < len(env.jobs[j]) - 1:
                 prob += b[(j, o)] + env.operations_dict[env.jobs[j][o]].duration <= b[(j, o + 1)]
@@ -88,6 +91,11 @@ def ILP(env: Environment):
                     # Constraint 1c: Each machine can only do one operation at a time
                     if s < number_of_slots - 1:
                         prob += t[(m, s)] +  x[(m, s, j, o)] * env.operations_dict[env.jobs[j][o]].duration <= t[(m, s+1)]
+                        
+    for m in range(len(env.machines)):
+        for s in range(number_of_slots):
+            for j in range(len(env.jobs)):
+                for o in range(len(env.jobs[j])):                
                     # Constraint 1d&&1e: t_m,s == b_j,o if job j's operation o is done on machine m at slot s
                     prob += t[(m, s)] <= b[(j, o)] + (1 - x[(m, s, j, o)]) * INF
                     prob += t[(m, s)] + (1 - x[(m, s, j, o)]) * INF >= b[(j, o)]
