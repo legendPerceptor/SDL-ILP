@@ -22,11 +22,17 @@ def main() -> None:
 
     jobs = [
         Job([ops[i] for i in [0, 1, 2]], 'job1'),
-        Job([ops[i] for i in [2, 1, 3, 1, 0]], 'job2')
+        Job([ops[i] for i in [2, 1, 3, 1, 0]], 'job2'),
+        Job([ops[i] for i in [0, 1, 2, 3, 0]], 'job3'),
+        Job([ops[i] for i in [0, 1, 2, 2, 2]], 'job4'),
     ]
     
     out = schedule(lab, jobs)
     print(f'Makespan: {out["makespan"].value()}')
+    b = out["b"]
+    for j, job in enumerate(jobs):
+        for o, op in enumerate(job.ops):
+            print(f"b[{j},{o}] = {b[j, o].value()}")
 
 
 if __name__ == '__main__':

@@ -1,23 +1,29 @@
 from collections import namedtuple
 from dataclasses import dataclass, field
 from numpy.random import randint
+from typing import List, Set, Dict
 
 Experiment = namedtuple('Experiment', [...])
 MIN_DURATION = 10
 MAX_DURATION = 10_000
 
 @dataclass(frozen=True)
-class Machine:
-    idx: int
-    ops: set[int]
+class Operation:
+    opcode: int
     name: str = field(default='N/A')
 
-    def has_operation(self, op) -> bool:
+@dataclass(frozen=True)
+class Machine:
+    idx: int
+    ops: Set[Operation]
+    name: str = field(default='N/A')
+
+    def has_operation(self, op: Operation) -> bool:
         return op in self.ops
 
 @dataclass(frozen=True)
 class Job:
-    ops: list[int]
+    ops: List[Operation]
     name: str = field(default='N/A')
 
     def __iter__(self) -> iter:
@@ -26,17 +32,14 @@ class Job:
     def __len__(self) -> int:
         return len(self.ops)
 
-@dataclass(frozen=True)
-class Operation:
-    opcode: int
-    name: str = field(default='N/A')
+
 
 class SDLLab:
     def __init__(
         self, 
-        machines: list[Machine], 
-        operations: set[Operation],
-        durations: dict[int, int] = None
+        machines: List[Machine], 
+        operations: Set[Operation],
+        durations: Dict[int, int] = None
     ) -> None:
         self.machines = machines
         self.operations = operations
@@ -48,8 +51,8 @@ class SDLLab:
         else:
             self.durations = durations
 
-    def machine_can_do_operation(self, m: int, o: int) -> bool:
-        return self.machines[m].has_operation(o)
+    def machine_can_do_operation(self, m: Machine, o: Operation) -> bool:
+        return m.has_operation(o)
 
     def proc_time(self, opcode: int) -> int:
         return self.durations[opcode]

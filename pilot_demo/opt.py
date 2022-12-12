@@ -67,18 +67,25 @@ def schedule(lab: SDLLab, jobs: List[Job]):
             for m in range(len(lab.machines)):
                 model += lpSum(x[j, o, m, s] for s in range(num_slots)) <= 1
 
-    # Constraint (g): ...
-    for m in range(len(lab.machines)):
-        for s in range(num_slots):
-            model += lpSum(x[j, o, m, s] for j, job in enumerate(jobs) for o in range(len(job.ops))) == 1
-
     # Constraint (h): ...
     for j, job in enumerate(jobs):
         for o in range(len(job.ops)):
             for m in range(len(lab.machines)):
+                # print(f"{lab.machines[m].name} operations = {lab.machines[m].ops}, can do {job.ops[o].name} = {int(lab.machine_can_do_operation(lab.machines[m], job.ops[o]))}")
                 for s in range(num_slots):
-                    x[j, o, m, s] <= int(lab.machine_can_do_operation(m, o))
+                    model += x[j, o, m, s] <= int(lab.machine_can_do_operation(lab.machines[m], job.ops[o]))
 
-    model.solve()
+    # Constraint (g): ...
+    for j, job in enumerate(jobs):
+        for o in range(len(job.ops)):
+            model += lpSum(x[j, o, m, s] for m in range(len(lab.machines)) for s in range(num_slots)) == 1
+
+    for m in range(len(lab.machines)):
+        for s in range(num_slots):
+            model += lpSum(x[j, o, m, s] for j, job in enumerate(jobs) for o in range(len(job.ops))) <= 1
+
+    
+    solver = PULP_CBC_CMD(msg=True, timeLimit=10)
+    model.solve(solver=solver)
 
     return dict(makespan=makespan, b=b, t=t, x=x, num_slots=num_slots)
