@@ -79,7 +79,7 @@ def main(m : int, n : int) -> None:
                         # break
                 # if found:
                 #     break
-            message += f"b[{j},{o}] {op.name} on {the_m.name} index={the_m.idx}, step {the_s}  = {b[j, o].value()}, "
+            message += f"b[{j},{o}] {op.name} on {the_m.name} index={the_m.idx}, step {the_s}, duration {durations[op.opcode]}  = {b[j, o].value()}, "
         print(message)
 
 
