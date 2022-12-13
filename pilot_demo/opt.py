@@ -4,7 +4,7 @@ from typing import List
 
 INF = 1e18
 
-def schedule(lab: SDLLab, jobs: List[Job]):
+def schedule(lab: SDLLab, jobs: List[Job], msg: bool=False):
     # Initialize the problem itself.
     model = LpProblem('SDL-Scheduling', LpMinimize)
 
@@ -84,8 +84,6 @@ def schedule(lab: SDLLab, jobs: List[Job]):
         for s in range(num_slots):
             model += lpSum(x[j, o, m, s] for j, job in enumerate(jobs) for o in range(len(job.ops))) <= 1
 
-    
-    solver = PULP_CBC_CMD(msg=True, timeLimit=10)
-    model.solve(solver=solver)
-
+    solver = PULP_CBC_CMD(msg=msg)
+    model.solve(solver)
     return dict(makespan=makespan, b=b, t=t, x=x, num_slots=num_slots)
