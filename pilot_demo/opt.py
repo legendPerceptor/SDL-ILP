@@ -55,11 +55,11 @@ def schedule(lab: SDLLab, jobs: List[Job], msg: bool=False):
                     model += t[m, s] <= b[j, o] + INF * (1 - x[j, o, m, s])
 
     # Constraint (e): ...
-    for m in range(len(lab.machines)):
-        for s in range(num_slots):
-            for j, job in enumerate(jobs):
-                for o in range(len(job.ops)):
-                    model += b[j, o] <= t[m, s] + INF * (1 - x[j, o, m, s])
+    # for m in range(len(lab.machines)):
+    #     for s in range(num_slots):
+    #         for j, job in enumerate(jobs):
+    #             for o in range(len(job.ops)):
+    #                 model += b[j, o] <= t[m, s] + INF * (1 - x[j, o, m, s])
     
     # Constraint (f): ...
     for j, job in enumerate(jobs):
@@ -84,6 +84,6 @@ def schedule(lab: SDLLab, jobs: List[Job], msg: bool=False):
         for s in range(num_slots):
             model += lpSum(x[j, o, m, s] for j, job in enumerate(jobs) for o in range(len(job.ops))) <= 1
 
-    solver = PULP_CBC_CMD(msg=msg)
+    solver = PULP_CBC_CMD(msg=msg, timeLimit=400)
     model.solve(solver)
     return dict(makespan=makespan, b=b, t=t, x=x, num_slots=num_slots)
