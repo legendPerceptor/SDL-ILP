@@ -10,7 +10,7 @@ import time
 import matplotlib.pyplot as plt
 
 class OperationSchedule:
-    def __init__(self, job_index : int, op : Operation, machine : Machine, step: int, start : int, duration : int):
+    def __init__(self, job_index: int, op: Operation, machine: Machine, step: int, start: int, duration: int):
         self.job_index = job_index
         self.op = op
         self.machine = machine
@@ -31,12 +31,30 @@ def displayJobs(jobs: List[Job]):
         print(f'Job {i}-> {job.name} steps: {ops}')
         
 
-def visualize_schedule(operation_schedules: List[OperationSchedule], total_machines: List[Machine], sp : int):
+def visualize_schedule(
+        operation_schedules: List[OperationSchedule],
+        total_machines: List[Machine],
+        sp: int
+):
     colors = ['#1abc9c', '#f1c40f', '#f39c12', '#c0392b', '#2980b9', '#8e44ad', '#34495e', '#bdc3c7', '#95a5a6']
     fig, ax = plt.subplots(1, 1)
-    for op_schedule in operation_schedules:
-        ax.broken_barh([(op_schedule.start, op_schedule.duration)], (op_schedule.machine.idx, 1), facecolors=colors[op_schedule.job_index])
-        ax.text(op_schedule.start + op_schedule.duration / 2, op_schedule.machine.idx, f'{op_schedule.job_index}:{op_schedule.op.name}', ha='center', va='center')
+    for i, op_schedule in enumerate(operation_schedules):
+        print(f'{i}: {op_schedule.start=}, {op_schedule.duration=} '
+              f'[machine={op_schedule.machine.idx}, job={op_schedule.job_index}, slot={op_schedule.step}]')
+        ax.broken_barh(
+            [(op_schedule.start, op_schedule.duration)],
+            (op_schedule.machine.idx, 1),
+            alpha=0.25,
+            edgecolors='black',
+            facecolors=colors[op_schedule.job_index]
+        )
+        ax.text(
+            op_schedule.start + op_schedule.duration / 2,
+            op_schedule.machine.idx + 0.5,
+            f'{op_schedule.job_index}:{op_schedule.op.name}',
+            ha='center',
+            va='center'
+        )
     ax.set_ylim(0, len(total_machines)+1)
     ax.set_xlabel('Time')
     ax.set_ylabel('Machine')
@@ -74,14 +92,17 @@ def main(num_machines: int, num_jobs: int):
         # Job([ops[i] for i in [0, 1, 2]], 'job1'),
     
     for i in range(num_jobs):
-        number_of_steps = 8 # random.randint(2, 6)
-        operations = [ ops[random.randint(0, 3)] for j in range(number_of_steps)]
+        number_of_ops = 4  # random.randint(2, 6)
+        operations = [
+            random.choice(ops) for _ in range(number_of_ops)
+        ]
         job = Job(operations, 'job' + str(i))
-        jobs.append(job)
+        jobs.insert(0, job)
     
     start = time.perf_counter()
     out = schedule(lab, jobs, msg=False)
     end = time.perf_counter()
+    print(f'It took {end - start} seconds to solve with ILP.')
     displayMachines(total_machines)
     displayJobs(jobs)
     
@@ -93,39 +114,64 @@ def main(num_machines: int, num_jobs: int):
     table_msg = []
     header = ['job', 'operation', 'machine (name)', 'machine (id)', 'machine slot', 'slot time (t)', 'begin time (b)', 'x[j,o,m,s]']    
     machine_steps = defaultdict(list)
-    final_schedule = []
 
     all_ms_pairs = []
-    for j, job in enumerate(jobs):
-        message = ""
-        for o, op in enumerate(job.ops):
-            the_m, the_s = -1, -1
-            count = 0
-            for m, c_machine in enumerate(total_machines):
-                # found = False
-                for s in range(num_slots):
-                    if x[j,o,m,s].value() == 1:
-                        the_m, the_s = c_machine, s
-                        machine_steps[m].append(the_s)
-                        all_ms_pairs.append((m, s))
-                        count += 1
-            if count == 1:
-                final_schedule.append(OperationSchedule(j, op, the_m, the_s, b[j, o].value(), durations[op.opcode]))
-                table_msg.append([
-                    j, op.name, the_m.name, the_m.idx, the_s, t[the_m.idx, the_s].value(), b[j, o].value(), x[j, o, the_m.idx, the_s].value()
-                ])
+    final_schedule = []
 
-    for m, c_machine in enumerate(total_machines):
-        message = ""
+    table_header = ['machine'] + [f'slot={s}' for s in range(num_slots)]
+    table = []
+
+    for m, machine in enumerate(total_machines):
+        machine_table_row = [m] + [None] * num_slots
         for s in range(num_slots):
-            if (m, s) in all_ms_pairs:
-                message += f'{m}:{s} -> {t[m,s].value()}, '
-            else:
-                message += f'{m}:{s} | {t[m,s].value()}, '
-        print(message)
+            machine_slot_value = 0
+            for j, job in enumerate(jobs):
+                for o, op in enumerate(job.ops):
+                    if x[j, o, m, s].value() == 1:
+                        final_schedule.append(OperationSchedule(
+                            j, op, machine, s, b[j, o].value(), durations[op.opcode]
+                        ))
+                        machine_slot_value += 1
+            machine_table_row[s + 1] = machine_slot_value
+        table.append(machine_table_row)
 
-    print(tabulate(table_msg, header))
-    print('')
+    print(tabulate(table, headers=table_header))
+
+
+    # for j, job in enumerate(jobs):
+    #     message = ""
+    #     for o, op in enumerate(job.ops):
+    #         the_m, the_s = -1, -1
+    #         count = 0
+    #         for m, c_machine in enumerate(total_machines):
+    #             # found = False
+    #             for s in range(num_slots):
+    #                 if x[j, o, m, s].value() == 1:
+    #                     the_m, the_s = c_machine, s
+    #                     machine_steps[m].append(the_s)
+    #                     all_ms_pairs.append((m, s))
+    #                     count += 1
+    #         if count == 1:
+    #             final_schedule.append(
+    #                 OperationSchedule(j, op, the_m, the_s, b[j, o].value(), durations[op.opcode])
+    #             )
+    #             table_msg.append([
+    #                 j, op.name, the_m.name, the_m.idx, the_s,
+    #                 t[the_m.idx, the_s].value(), b[j, o].value(),
+    #                 x[j, o, the_m.idx, the_s].value()
+    #             ])
+
+    # for m, c_machine in enumerate(total_machines):
+    #     message = f'>>> MACHINE {m}:  '
+    #     for s in range(num_slots):
+    #         if (m, s) in all_ms_pairs:
+    #             message += f't[{m}, {s}]={t[m, s].value()},  '
+    #         # else:
+    #         #     message += f'{m}:{s} | {t[m,s].value()}, '
+    #     print(message.strip()[:-1])
+
+    # print(tabulate(table_msg, header))
+    # print('')
     visualize_schedule(final_schedule, total_machines, out["makespan"].value())
     
     # for m, steps in machine_steps.items():
@@ -146,15 +192,18 @@ def test_and_plot():
             start = time.perf_counter()
             sp, solve_time = main(number_of_machines, number_of_jobs)
             end = time.perf_counter()
-            print(f'Number of machines: {number_of_machines}, number of jobs: {number_of_jobs}, makespan: {sp}, solve time: {solve_time}, total time: {end - start}')
+            print(f'Number of machines: {number_of_machines}, number of jobs: {number_of_jobs}, '
+                  f'makespan: {sp}, solve time: {solve_time}, total time: {end - start}')
             solve_time_list.append(solve_time)
             total_time_list.append(end - start)
             make_span_list.append(sp)
         n_machines = [number_of_machines] * len(n_job_list)
         print('saving data for ', number_of_machines, ' machines')
-        plot_df = pd.DataFrame(data = { 'solve_time': solve_time_list,
+        plot_df = pd.DataFrame(
+            data = { 'solve_time': solve_time_list,
             'total_time': total_time_list, 'makespan': make_span_list,
-            'n_jobs': n_job_list, 'n_machines': n_machines})
+            'n_jobs': n_job_list, 'n_machines': n_machines}
+        )
         plot_df.to_csv(f'./data/{number_of_machines}_machines.csv', index=False)
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
         ax[0].plot(n_job_list, solve_time_list, 'o-', color='#f39c12',label='solve time')
@@ -168,9 +217,5 @@ def test_and_plot():
 
 
 if __name__ == '__main__':
-    random.seed(None)
-    
-    start = time.perf_counter()
-    main(10, 5)
-    end = time.perf_counter()
-    print(f'Elapsed time: {end - start} seconds')
+    random.seed(1)
+    main(1, 2)
