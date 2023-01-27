@@ -6,16 +6,16 @@ import pilot_demo.opt_2010 as ilp
 
 from pilot_demo.lab import *
 from time import perf_counter
-
+from typing import List, Dict
 
 FORMAT = '(%(levelname)s) [%(asctime)s]  %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO)
 
 
 def main(
-        machines: list[Machine],
-        operations: list[Operation],
-        op_durations: dict[OpCode, int],
+        machines: List[Machine],
+        operations: List[Operation],
+        op_durations: Dict[OpCode, int],
         number_of_jobs: int,
         msg: bool = False
 ):
