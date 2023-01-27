@@ -1,16 +1,20 @@
 from collections import namedtuple
 from dataclasses import dataclass, field
 from numpy.random import randint
-from typing import List, Set, Dict
+from typing import List, NewType, Set, Dict, Union
 
 Experiment = namedtuple('Experiment', [...])
 MIN_DURATION = 10
 MAX_DURATION = 10_000
 
+OpCode = NewType('OpCode', int)
+
+
 @dataclass(frozen=True)
 class Operation:
-    opcode: int
+    opcode: Union[OpCode, int]
     name: str = field(default='N/A')
+
 
 @dataclass(frozen=True)
 class Machine:
@@ -20,6 +24,7 @@ class Machine:
 
     def has_operation(self, op: Operation) -> bool:
         return op in self.ops
+
 
 @dataclass(frozen=True)
 class Job:
@@ -31,7 +36,6 @@ class Job:
 
     def __len__(self) -> int:
         return len(self.ops)
-
 
 
 class SDLLab:
@@ -51,8 +55,13 @@ class SDLLab:
         else:
             self.durations = durations
 
+    def machines_that_can_do(self, op: Operation):
+        return [mach.idx for mach in self.machines
+                if mach.has_operation(op)]
+
+    def proc_time(self, opcode: OpCode) -> int:
+        return self.durations[opcode]
+
+    @staticmethod
     def machine_can_do_operation(self, m: Machine, o: Operation) -> bool:
         return m.has_operation(o)
-
-    def proc_time(self, opcode: int) -> int:
-        return self.durations[opcode]

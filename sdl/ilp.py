@@ -9,58 +9,79 @@ def ILP(env: SDLEnv):
     # Create the 'prob' variable to contain the problem data
     prob = pulp.LpProblem("The Production Problem", pulp.LpMinimize)
 
-    jo = {(j, o) for j in range(len(env.jobs)) for o in range(len(env.jobs[j]))}
-    tj = pulp.LpVariable.dicts("Joboperations", jo, cat=pulp.LpInteger)
-    SP = pulp.LpVariable("The Makespan", cat=pulp.LpInteger)
-    prob += SP # The optimization goal
-
-    # use the maximum possible number of slots for every machine
+    joms, jo, ms = set(), set(), set()
     number_of_slots = sum(len(job) for job in env.jobs)
-
-    xs = {(m, s, j, o) for m in range(len(env.machines))
-         # TODO: how to define all the operations that will be run for a machine
-         for s in range(number_of_slots)
-         for j in range(len(env.jobs))
-         for o in range(len(env.jobs[j]))}
-    x = pulp.LpVariable.dicts("MachineOperations", xs, cat=pulp.LpBinary)
-
-    for j in range(len(env.jobs)):
-        for o in range(len(env.jobs[j])):
-            # Constraint 1: The makespan must be greater than the end time of each job
-            prob += tj[j, o] + env.operations[env.jobs[j][o]].duration <= SP
-            # Constraint 2: Each job must have its operation performed in order
-            if o < len(env.jobs[j]) - 1:
-                prob += tj[j, o] + env.operations[env.jobs[j][o]].duration <= tj[j, o + 1]
-            # Constraint 3: Each machine can only do one operation at a time
-            for m in range(len(env.machines)):
-                for s in range(number_of_slots):
-                    for j1 in range(len(env.jobs)):
-                        for o1 in range(len(env.jobs[j1])):
-                            prob += tj[j, o] * x[m, s, j, o] + env.operations[env.jobs[j][o]].duration \
-                                 <= x[m, s+1, j1, o1]  * tj[j1, o1] + (1-x[m, s+1, j1, o1]) * INF
-    
-    # Constraint 4: Each machine will at most do job j's operation o once
-    for m in range(len(env.machines)):
-        for j in range(len(env.jobs)):
-            for o in range(len(env.jobs[j])):
-                prob += pulp.lpSum(x[m, s, j, 1] for s in range(number_of_slots)) <= 1       
-    
-    # Constraint 5: Each operation must be done once
     for m in range(len(env.machines)):
         for s in range(number_of_slots):
-            prob += pulp.lpSum(x[m, s, j, o] for j in range(len(env.jobs)) for o in range(len(env.jobs[j]))) == 1
-    
-    # Constraint 6: Operations can only be done on machines that are capable of doing them
-    # x[m,s,j,o] <= a[m, o]
+            ms.add((m, s))
+            for j in range(len(env.jobs)):
+                for o in range(len(env.jobs[j])):
+                    joms.add((j, o, m, s))
+                    jo.add((j, o))
+
+
+    x = pulp.LpVariable.dicts('Machine-Operation Assignments', joms, cat=pulp.LpInteger)
+    b = pulp.LpVariable.dicts('Operation Begin Time', jo, cat=pulp.LpInteger)
+    t = pulp.LpVariable.dicts('Machine Startup Time', ms, cat=pulp.LpInteger)
+    SP = pulp.LpVariable('Makespan', cat=pulp.LpInteger)
+    prob += SP # The optimization goal
+
+    # Constraint (A): Makespan must be greater than the end time of each job.
+    for j in range(len(env.jobs)):
+        for o in range(len(env.jobs[j])):
+            prob += b[j, o] + env.operations[env.jobs[j][o]].duration <= SP
+
+
+    # Constraint (B): Each job must have its operation performed in order.
+    for j in range(len(env.jobs)):
+        for o in range(len(env.jobs[j]) - 1):
+            prob += b[j, o] + env.operations[env.jobs[j][o]].duration <= b[j, o + 1]
+
+    # Constraint (C): No operation is run on a machine during a prior operation's processing time.
     for j in range(len(env.jobs)):
         for o in range(len(env.jobs[j])):
             for m in range(len(env.machines)):
                 for s in range(number_of_slots):
-                    if env.machines[m] in env.operations[env.jobs[j][o]].machines:
-                        prob += x[m, s, j, o] <= 1
-                    else:
-                        prob += x[m, s, j, o] <= 0
-    
+                    prob += t[m, s] + x[j, o, m, s] * env.operations[env.jobs[j][o]].duration <= t[m, s + 1]
+
+    # Constraint (D): ...
+    for m in range(len(env.machines)):
+        for s in range(number_of_slots):
+            for j1 in range(len(env.jobs)):
+                for j2 in range(len(env.jobs)):
+                    for o1 in range(len(env.jobs[j1])):
+                        for o2 in range(len(env.jobs[j2])):
+                            prob += t[m, s] <= b[j1, o1] + INF * (1 - x[j2, o2, m, s])
+
+    # Constraint (E):
+    for m in range(len(env.machines)):
+        for s in range(number_of_slots):
+            for j1 in range(len(env.jobs)):
+                for j2 in range(len(env.jobs)):
+                    for o1 in range(len(env.jobs[j1])):
+                        for o2 in range(len(env.jobs[j2])):
+                            prob += t[m, s] + INF * (1 - x[j2, o2, m, s]) >= b[j1, o1]
+
+    # Constraint (F): ...
+    for j in range(len(env.jobs)):
+        for o in range(len(env.jobs[j])):
+            for m in range(len(env.machines)):
+                prob += pulp.lpSum(x[j, o, m, s] for s in range(number_of_slots)) <= 1
+
+    # Constraint (G): ...
+    for m in range(len(env.machines)):
+        for s in range(number_of_slots):
+            prob += pulp.lpSum(x[j, o, m, s] for j in range(len(env.jobs)) for o in range(len(env.jobs[j]))) == 1
+
+
+    # Constraint (H): ...
+    for j in range(len(env.jobs)):
+        for o in range(len(env.jobs[j])):
+            for m in range(len(env.machines)):
+                for s in range(number_of_slots):
+                    a_mo = int(env.machines[m] in env.operations[env.jobs[j][o]].machines)
+                    prob += x[j, o, m, s] <= a_mo
+
     solver = pulp.PULP_CBC_CMD()
     prob.solve(solver)
     
