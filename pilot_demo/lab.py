@@ -55,6 +55,15 @@ class SDLLab:
         else:
             self.durations = durations
 
+        self.op_to_machine_ids : Dict[int, Set[int]] = dict()
+        for opid, op in enumerate(operations):
+            for machine in self.machines:
+                if op in machine.ops:
+                    if opid not in self.op_to_machine_ids:
+                        self.op_to_machine_ids[opid] = set()
+                    self.op_to_machine_ids[opid].add(machine.idx)
+                    
+
     def machines_that_can_do(self, op: Operation):
         return [mach.idx for mach in self.machines
                 if mach.has_operation(op)]

@@ -45,6 +45,9 @@ def solve(lab: SDLLab, jobs: List[Job], msg: bool = False, L: Optional[int] = No
     t = LpVariable.dicts('Total completion time', J, cat=LpContinuous, lowBound=0, upBound=L)
     SP = LpVariable('Makespan', lowBound=0, upBound=None, cat=LpContinuous)
 
+    # Initialize objective function.
+    model += SP
+
     # Initialize the constraints.
     # Constraint (1): Ensure Operation [jo] is assigned to only one machine.
     for j, job in enumerate(jobs):
