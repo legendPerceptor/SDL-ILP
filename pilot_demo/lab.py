@@ -13,14 +13,15 @@ OpCode = NewType('OpCode', int)
 @dataclass(frozen=True)
 class Operation:
     opcode: Union[OpCode, int]
-    name: str = field(default='N/A')
+    name: str
+    duration: int = field(default=0)
 
 
 @dataclass(frozen=True)
 class Machine:
     idx: int
+    name: str
     ops: Set[Operation]
-    name: str = field(default='N/A')
 
     def has_operation(self, op: Operation) -> bool:
         return op in self.ops
@@ -28,8 +29,9 @@ class Machine:
 
 @dataclass(frozen=True)
 class Job:
+    idx: int
+    name: str
     ops: List[Operation]
-    name: str = field(default='N/A')
 
     def __iter__(self) -> iter:
         return iter(self.ops)
@@ -56,7 +58,10 @@ class SDLLab:
             self.durations = durations
 
         self.op_to_machine_ids : Dict[int, Set[int]] = dict()
-        for opid, op in enumerate(operations):
+        self.opcode_to_op : Dict[int, Operation] = dict()
+        for op in operations:
+            opid = op.opcode
+            self.opcode_to_op[opid] = op
             for machine in self.machines:
                 if op in machine.ops:
                     if opid not in self.op_to_machine_ids:

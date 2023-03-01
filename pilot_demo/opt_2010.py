@@ -101,7 +101,7 @@ def solve(lab: SDLLab, jobs: List[Job], msg: bool = False, L: Optional[int] = No
         model += SP >= t[j]
 
     # Solve the problem, convert the decision variables into dicts, and return.
-    solver = PULP_CBC_CMD(msg=msg)
+    solver = PULP_CBC_CMD(msg=msg, maxSeconds=20, timeLimit=20)
     model.solve(solver)
 
     x = {key: x[key].value() for key in x}

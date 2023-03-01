@@ -2,5 +2,7 @@
 .DS_Store
 figures/
 **/__pycache__/**
+pilot_demo/__pycache__/
 plot-only.py
 data/
+sdl-docs/

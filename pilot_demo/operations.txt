@@ -1,0 +1,100 @@
+Turning
+Milling
+Drilling
+Boring
+Reaming
+Tapping
+Facing
+Knurling
+Threading
+Broaching
+Grinding
+Honing
+Lapping
+Polishing
+Buffing
+Sanding
+Sawing
+Cutting
+Shearing
+Punching
+Stamping
+Forming
+Extruding
+Drawing
+Rolling
+Embossing
+Laser cutting
+Waterjet cutting
+Plasma cutting
+Welding
+Soldering
+Brazing
+Riveting
+Adhesive bonding
+Heat treating
+Annealing
+Normalizing
+Quenching
+Tempering
+Hardening
+Case hardening
+Nitriding
+Carburizing
+Induction heating
+Forging
+Casting
+Molding
+Injection molding
+Blow molding
+Rotational molding
+Vacuum forming
+Thermoforming
+Electroplating
+Anodizing
+Powder coating
+Painting
+Electro-polishing
+Buffing and polishing
+Deburring
+Chamfering
+Beveling
+Countersinking
+Counterboring
+Spot facing
+Spot drilling
+Burnishing
+Electropolishing
+Vapor honing
+Ultrasonic cleaning
+Ultrasonic welding
+Mechanical assembly
+Electrical assembly
+Electronic assembly
+Packaging
+Labeling
+Barcode printing
+RFID tagging
+Inspection
+Quality control
+Testing
+Measurement
+Calibration
+Metrology
+Robotics
+Automation
+PLC programming
+CNC programming
+3D printing
+Additive manufacturing
+Rapid prototyping
+Reverse engineering
+Computer-aided design
+Computer-aided manufacturing
+Virtual prototyping
+Simulations
+Finite element analysis
+Computational fluid dynamics
+Material testing
+Failure analysis
+Environmental testing.

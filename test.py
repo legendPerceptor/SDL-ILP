@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy.random as random
 import pilot_demo.opt_2010 as ilp
 import pilot_demo.list_scheduling as greedy
+from pilot_demo.sdl_factory import SDLFactory
 
 from pilot_demo.lab import *
 from time import perf_counter
@@ -68,8 +69,9 @@ def ilp_main(
 
     # Plot the solver's decisions in MPL.
     colors = ['#1abc9c', '#f1c40f', '#f39c12', '#c0392b', '#2980b9',
-              '#8e44ad', '#34495e', '#bdc3c7', '#95a5a6']
-    fig, ax = plt.subplots(1, 1)
+              '#8e44ad', '#34495e', '#bdc3c7', '#95a5a6', '#2c3e50', '#7f8c8d']
+    fig, axes = plt.subplots(3, 1, figsize=(16, 9))
+    ax = axes[0]
     for i, decision in enumerate(opt_schedule):
         ax.broken_barh(
             [(decision['starting-time'], decision['runtime'])],
@@ -93,7 +95,60 @@ def ilp_main(
     ax.set_yticks([m - 0.5 for m in range(len(machines)+1)], minor=True)
     ax.set_yticks([m for m in range(len(machines))], minor=False)
     ax.grid(which='minor', linestyle='--')
+
+    ax = axes[1]
+    for i, job in enumerate(jobs):
+        start_time = 0
+        for j, op in enumerate(job.ops):
+            ax.broken_barh(
+                [(start_time, op_durations[op.opcode])],
+                (i-0.5, 1.0),
+                alpha=0.25,
+                edgecolors='black',
+                facecolors=colors[i]
+            )
+            ax.text(
+                start_time + op_durations[op.opcode] / 2,
+                i,
+                f'{i}-{j}: {op.name}',
+                fontsize=6,
+                ha='center',
+                va='center'
+            )
+            start_time += op_durations[op.opcode]
+    ax.set_xlim(0, makespan)
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Job ID')
+    ax.set_title('Jobs')
+
+    ax = axes[2]
+    for i, m in enumerate(machines):
+        start_time = 0
+        for j, op in enumerate(m.ops):
+            ax.broken_barh(
+                [(start_time, op_durations[op.opcode])],
+                (i-0.5, 1.0),
+                alpha=0.25,
+                edgecolors='black',
+                facecolors=colors[i]
+            )
+            ax.text(
+                start_time + op_durations[op.opcode] / 2,
+                i,
+                f'{j}: {op.name}',
+                fontsize=6,
+                ha='center',
+                va='center'
+            )
+            start_time += op_durations[op.opcode]
+    ax.set_xlabel('Time')
+    ax.set_xlim(0, makespan)
+    ax.set_ylabel('Machine ID')
+    ax.set_title('Machine Capabilities')
+    fig.tight_layout()
+    plt.savefig('figures/ilp-Mar1.png', dpi=300)
     plt.show()
+
 
 
 def greedy_main(
@@ -109,20 +164,19 @@ def greedy_main(
     makespan, SJs, Ms = greedy.solve(lab, jobs)
     end = perf_counter()
     logging.info(f'The greedily-found makespan: {makespan}.')
+    logging.info(f'Time taken (in seconds) to solve the ILP: {end - start}.')
 
     # Plot the solver's decisions in MPL.
     colors = ['#1abc9c', '#f1c40f', '#f39c12', '#c0392b', '#2980b9',
-              '#8e44ad', '#34495e', '#bdc3c7', '#95a5a6']
-    fig, axes = plt.subplots(1, 2)
+              '#8e44ad', '#34495e', '#bdc3c7', '#95a5a6', '#2c3e50', '#7f8c8d']
+    fig, axes = plt.subplots(3, 1, figsize=(16, 9))
     for M in Ms:
         print(M)
     ax = axes[0]
     for i, M_d in enumerate(Ms):
         for decision in M_d:
-            start_time = decision[2]
-            run_time = durations[decision[1].opcode]
-            op = operations[decision[1].opcode]
-            job_id = decision[0]
+            job_id, job_step, op, start_time = decision
+            run_time = op.duration
             machine_id = i
             ax.broken_barh(
                 [(start_time, run_time)],
@@ -134,12 +188,13 @@ def greedy_main(
             ax.text(
                 start_time + run_time / 2,
                 machine_id,
-                f'{job_id}: {op.name}',
+                f'{job_id}-{job_step}: {op.name}',
                 fontsize=6,
                 ha='center',
                 va='center'
             )
     ax.set_ylim(-0.5, len(machines)-0.5)
+    ax.set_xlim(0, makespan)
     ax.set_xlabel('Time')
     ax.set_ylabel('Machine')
     ax.set_title('Schedule')
@@ -152,34 +207,63 @@ def greedy_main(
         start_time = 0
         for j, op in enumerate(job.ops):
             ax.broken_barh(
-                [(start_time, durations[op.opcode])],
+                [(start_time, op_durations[op.opcode])],
                 (i-0.5, 1.0),
                 alpha=0.25,
                 edgecolors='black',
                 facecolors=colors[i]
             )
             ax.text(
-                start_time + durations[op.opcode] / 2,
+                start_time + op_durations[op.opcode] / 2,
                 i,
-                f'{i}: {op.name}',
+                f'{i}-{j}: {op.name}',
                 fontsize=6,
                 ha='center',
                 va='center'
             )
-            start_time += durations[op.opcode]
+            start_time += op_durations[op.opcode]
+    ax.set_xlim(0, makespan)
     ax.set_xlabel('Time')
     ax.set_ylabel('Job ID')
     ax.set_title('Jobs')
+
+    ax = axes[2]
+    for i, m in enumerate(machines):
+        start_time = 0
+        for j, op in enumerate(m.ops):
+            ax.broken_barh(
+                [(start_time, op_durations[op.opcode])],
+                (i-0.5, 1.0),
+                alpha=0.25,
+                edgecolors='black',
+                facecolors=colors[i]
+            )
+            ax.text(
+                start_time + op_durations[op.opcode] / 2,
+                i,
+                f'{j}: {op.name}',
+                fontsize=6,
+                ha='center',
+                va='center'
+            )
+            start_time += op_durations[op.opcode]
+    ax.set_xlabel('Time')
+    ax.set_xlim(0, makespan)
+    ax.set_ylabel('Machine ID')
+    ax.set_title('Machine Capabilities')
+    fig.tight_layout()
+    plt.savefig('figures/greedy-Mar1.png', dpi=300)
     plt.show()
+    
 
 
-if __name__ == '__main__':
+def old_small_test():
     random.seed(123)
     operations = [
-        Operation(0, 'Peel'),
-        Operation(1, 'Transfer'),
-        Operation(2, 'GetPlate'),
-        Operation(3, 'Seal')
+        Operation(0, 'Peel', 3),
+        Operation(1, 'Transfer', 5),
+        Operation(2, 'GetPlate', 7),
+        Operation(3, 'Seal', 11)
     ]
     machines = [
         Machine(0, {operations[0]}, 'Peeler'),
@@ -188,8 +272,7 @@ if __name__ == '__main__':
         Machine(3, {operations[3]}, 'Sealer')
     ]
     durations = {
-        opcode: dur for opcode, dur in
-         enumerate([3, 5, 7, 11])
+        op.opcode: op.duration for op in operations
     }
 
     jobs = []
@@ -202,3 +285,36 @@ if __name__ == '__main__':
     print(operations)
     # ilp_main(machines, operations, durations, jobs, msg=True)
     greedy_main(machines, operations, durations, jobs, msg=True)
+
+def print_sdl(machines, jobs, operations):
+    print("Machines:")
+    for machine in machines:
+        print(machine)
+    print("Jobs:")
+    for job in jobs:
+        print(job)
+    print("Operations:")
+    for operation in operations:
+        print(operation)
+
+def test_sdl_factory_greedy(filename):
+    machines, jobs, operations = SDLFactory().create_sdl(
+        p=5, m=8, n=10, o=20, steps_min=5, steps_max=10, filename=filename)
+    durations = {
+        op.opcode: op.duration for op in operations
+    }
+    greedy_main(machines, operations, durations, jobs, msg=True)
+
+def test_sdl_factory_ilp(filename):
+    machines, jobs, operations = SDLFactory().create_sdl(
+        p=5, m=8, n=10, o=20, steps_min=5, steps_max=10, filename=filename)
+    durations = {
+        op.opcode: op.duration for op in operations
+    }
+    ilp_main(machines, operations, durations, jobs, msg=True)
+
+if __name__ == '__main__':
+    # filename = 'pilot_demo/operations.txt'
+    filename = 'pilot_demo/simple_operation_names.txt'
+    test_sdl_factory_greedy(filename=filename)
+    # test_sdl_factory_ilp(filename=filename)

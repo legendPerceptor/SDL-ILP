@@ -24,7 +24,7 @@ def solve(lab: SDLLab, jobs: List[Job]):
     Ms1 = [(J1, O1, t1),(J2, O2, t2), ...]
     Ms2 = [(J4, O8, t8),(J3, O9, t9), ...]
     '''
-    SJs = [[(-1, 0) for s in job] for job in jobs]
+    SJs = [[(-1, 0) for _ in job] for job in jobs]
     Ms = [[] for _ in range(len(lab.machines))]
     job_step_counter = [0 for _ in range(len(jobs))]
     machine_avail_time_counter = [0 for _ in range(len(lab.machines))]
@@ -33,18 +33,20 @@ def solve(lab: SDLLab, jobs: List[Job]):
     print("OP to Machine IDS: ", lab.op_to_machine_ids)
     while True:
         finished_job_count = 0
-        for i, job in enumerate(jobs):
+        for job in jobs:
+            i = job.idx - 1 # job index starts from 1
             if job_finished[i]:
                 finished_job_count += 1
                 continue
             cur_op = job.ops[job_step_counter[i]]
             min_start_time, on_machine = -1, -1
-            for machine in lab.op_to_machine_ids[cur_op.opcode]:
-                if (min_start_time > machine_avail_time_counter[machine]) or min_start_time == -1:
-                    min_start_time = max(machine_avail_time_counter[machine], job_next_step_avail_time[i])
-                    on_machine = machine
+            for machine_id in lab.op_to_machine_ids[cur_op.opcode]:
+                # machine_id starts from 1
+                if (min_start_time > machine_avail_time_counter[machine_id - 1]) or min_start_time == -1:
+                    min_start_time = max(machine_avail_time_counter[machine_id -1], job_next_step_avail_time[i])
+                    on_machine = machine_id - 1
             SJs[i][job_step_counter[i]] = (on_machine, min_start_time)
-            Ms[on_machine].append((i, cur_op, min_start_time))
+            Ms[on_machine].append((i, job_step_counter[i], cur_op, min_start_time))
             job_step_counter[i] += 1
             job_next_step_avail_time[i] = min_start_time + lab.durations[cur_op.opcode]
             machine_avail_time_counter[on_machine] = min_start_time + lab.durations[cur_op.opcode]
