@@ -1,4 +1,4 @@
-from pilot_demo.lab import Job, SDLLab, Machine, Operation
+from sdl.lab import Job, SDLLab, Machine, Operation
 from pulp import *
 from typing import List, Optional
 

@@ -4,8 +4,8 @@ import pandas as pd
 
 from collections import defaultdict
 from tabulate import tabulate
-from pilot_demo.lab import *
-from pilot_demo.opt import *
+from sdl.lab import *
+from sdl.opt import *
 import time
 import matplotlib.pyplot as plt
 

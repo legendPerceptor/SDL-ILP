@@ -2,11 +2,11 @@
 import logging
 import matplotlib.pyplot as plt
 import numpy.random as random
-import pilot_demo.opt_2010 as ilp
-import pilot_demo.list_scheduling as greedy
-from pilot_demo.sdl_factory import SDLFactory
+import sdl.algorithm.opt_2010 as ilp
+import sdl.algorithm.list_scheduling as greedy
+from sdl.random.sdl import SDLFactory
 
-from pilot_demo.lab import *
+from sdl.lab import *
 from time import perf_counter
 from typing import List, Dict
 
@@ -41,7 +41,7 @@ def ilp_main(
     """
     lab = SDLLab(machines, operations, op_durations)
     start = perf_counter()
-    out = ilp.solve(lab, jobs, msg=msg)
+    out = ilp.solve(lab, jobs, msg=msg, time_limit=5)
     end = perf_counter()
 
     makespan = out['makespan']
@@ -314,7 +314,7 @@ def test_sdl_factory_ilp(filename):
     ilp_main(machines, operations, durations, jobs, msg=True)
 
 if __name__ == '__main__':
-    # filename = 'pilot_demo/operations.txt'
-    filename = 'pilot_demo/simple_operation_names.txt'
-    test_sdl_factory_greedy(filename=filename)
-    # test_sdl_factory_ilp(filename=filename)
+    # filename = 'sdl/operations.txt'
+    filename = 'sdl/depr/simple_operation_names.txt'
+    # test_sdl_factory_greedy(filename=filename)
+    test_sdl_factory_ilp(filename=filename)

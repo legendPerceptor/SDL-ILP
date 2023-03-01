@@ -1,8 +1,8 @@
 import numpy.random as random
 
 
-from pilot_demo.lab import *
-from pilot_demo.opt import *
+from sdl.lab import *
+from sdl.opt import *
 
 def main() -> None:
     ops = [
