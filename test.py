@@ -9,6 +9,7 @@ from sdl.lab import *
 from time import perf_counter
 from typing import List, Dict
 from sdl.plot import SDLPlot
+from sdl.verify import ScheduleVerifier
 
 FORMAT = '(%(levelname)s) [%(asctime)s]  %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -66,7 +67,11 @@ def ilp_main(
                         completion_time=c[j, o, m],
                         duration=c[j, o, m] - s[j, o, m]
                     ))
-
+    schedule_verifier = ScheduleVerifier(opt_schedule, lab, jobs)
+    if schedule_verifier.verify_all():
+        logging.info('The schedule provided by ILP is valid.')
+    else:
+        logging.error('The schedule provided by ILP is NOT valid.')
     # Plot the solver's decisions in MPL.
     fig, axes = plt.subplots(3, 1, figsize=(16, 9))
     sdl_plot = SDLPlot(machines, jobs, op_durations, makespan)
@@ -91,15 +96,15 @@ def greedy_main(
     makespan, sjs, ms = greedy.solve(lab, jobs)
     end = perf_counter()
     logging.info(f'The greedily-found makespan: {makespan}.')
-    logging.info(f'Time taken (in seconds) to solve the ILP: {end - start}.')
+    logging.info(f'Time taken (in seconds) to solve the greedy schedule: {end - start}.')
 
-    opt_schedule = []
+    greedy_schedule = []
     for i, M_d in enumerate(ms):
         for decision in M_d:
             job_id, job_step, op, start_time = decision
             run_time = op_durations[op.opcode]
             machine_id = i
-            opt_schedule.append(
+            greedy_schedule.append(
                 Decision(
                     job_id=job_id,
                     operation=op,
@@ -109,10 +114,16 @@ def greedy_main(
                     duration=run_time
                 )
             )
+
+    schedule_verifier = ScheduleVerifier(greedy_schedule, lab, jobs)
+    if schedule_verifier.verify_all():
+        logging.info('The schedule provided by Greedy Algorithm is valid.')
+    else:
+        logging.error('The schedule provided by Greedy Algorithm is NOT valid.')
     # Plot the solver's decisions in MPL.
     fig, axes = plt.subplots(3, 1, figsize=(16, 9))
     sdl_plot = SDLPlot(machines, jobs, op_durations, makespan)
-    sdl_plot.plotSchedule(axes[0], opt_schedule)
+    sdl_plot.plotSchedule(axes[0], greedy_schedule)
     sdl_plot.plotJobs(axes[1])
     sdl_plot.plotMachines(axes[2])
     fig.tight_layout()
@@ -163,7 +174,7 @@ def print_sdl(machines, jobs, operations):
 
 
 def test_sdl_factory_greedy(filename):
-    random_state = random.RandomState(123)
+    random_state = random.RandomState(127)
     machines, jobs, operations = create_sdl(
         p=5, m=8, n=10, o=20, steps_min=5, steps_max=10, filename=filename, random_state=random_state)
     durations = {
@@ -185,5 +196,5 @@ def test_sdl_factory_ilp(filename):
 if __name__ == '__main__':
     # filename = 'sdl/operations.txt'
     filename = 'sdl/depr/simple_operation_names.txt'
-    # test_sdl_factory_greedy(filename=filename)
-    test_sdl_factory_ilp(filename=filename)
+    test_sdl_factory_greedy(filename=filename)
+    # test_sdl_factory_ilp(filename=filename)

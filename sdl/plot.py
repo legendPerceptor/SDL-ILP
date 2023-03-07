@@ -58,8 +58,8 @@ class SDLPlot:
         ax.set_ylabel('Job ID')
         ax.set_title('Jobs')
 
-    def plotSchedule(self, ax, opt_schedule):
-        for i, decision in enumerate(opt_schedule):
+    def plotSchedule(self, ax, schedule):
+        for i, decision in enumerate(schedule):
             ax.broken_barh(
                 [(decision.starting_time, decision.duration)],
                 (decision.machine_id - 0.5, 1.0),
