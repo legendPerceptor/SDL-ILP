@@ -18,6 +18,16 @@ class Operation:
 
 
 @dataclass(frozen=True)
+class Decision:
+    job_id: int
+    operation: Operation
+    machine_id: int
+    starting_time: int
+    completion_time: int
+    duration: int
+
+
+@dataclass(frozen=True)
 class Machine:
     idx: int
     name: str
