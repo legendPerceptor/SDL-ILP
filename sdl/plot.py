@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-
+from sdl.lab import Decision, Job, Machine, Operation
 class SDLPlot:
     def __init__(self, machines, jobs, op_durations, makespan):
         self.colors = ['#1abc9c', '#f1c40f', '#f39c12', '#c0392b', '#2980b9',
@@ -8,6 +8,7 @@ class SDLPlot:
         self.op_durations = op_durations
         self.makespan = makespan
         self.jobs = jobs
+
     def plotMachines(self, ax):
         for i, m in enumerate(self.machines):
             start_time = 0
@@ -82,3 +83,32 @@ class SDLPlot:
         ax.set_yticks([m - 0.5 for m in range(len(self.machines) + 1)], minor=True)
         ax.set_yticks([m for m in range(len(self.machines))], minor=False)
         ax.grid(which='minor', linestyle='--')
+
+def renderSchedule(ms):
+    schedule = []
+    for i, M_d in enumerate(ms):
+        for decision in M_d:
+            # job_id, job_step, op, start_time, end_time = decision
+            run_time = decision.operation.duration
+            machine_id = i
+            schedule.append(
+                Decision(
+                    job_id=decision.job_id,
+                    operation=decision.operation,
+                    machine_id=machine_id,
+                    starting_time=decision.start_time,
+                    completion_time=decision.end_time,
+                    duration=run_time
+                )
+            )
+    return schedule
+
+def plotAll(schedule, machines, jobs, op_durations, makespan, filename):
+    fig, axes = plt.subplots(3, 1, figsize=(16, 9))
+    sdl_plot = SDLPlot(machines, jobs, op_durations, makespan)
+    sdl_plot.plotSchedule(axes[0], schedule)
+    sdl_plot.plotJobs(axes[1])
+    sdl_plot.plotMachines(axes[2])
+    fig.tight_layout()
+    plt.savefig(f'figures/{filename}', dpi=300)
+    plt.show()

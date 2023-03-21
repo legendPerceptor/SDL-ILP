@@ -15,7 +15,16 @@ class Operation:
     opcode: Union[OpCode, int]
     name: str
     duration: int = field(default=0)
+    # machines: Set[int] = field(default_factory=set)
 
+
+@dataclass(frozen=True)
+class MachineSchedule:
+    job_id: int
+    job_step: int
+    operation: Operation
+    start_time: int
+    end_time: int
 
 @dataclass(frozen=True)
 class Decision:

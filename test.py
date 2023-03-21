@@ -8,8 +8,10 @@ from sdl.random.sdl import create_sdl
 from sdl.lab import *
 from time import perf_counter
 from typing import List, Dict
-from sdl.plot import SDLPlot
+from sdl.plot import SDLPlot, plotAll, renderSchedule
 from sdl.verify import ScheduleVerifier
+
+from sdl.algorithm.genetic import schedule_from_chromosome
 
 FORMAT = '(%(levelname)s) [%(asctime)s]  %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -73,14 +75,44 @@ def ilp_main(
     else:
         logging.error('The schedule provided by ILP is NOT valid.')
     # Plot the solver's decisions in MPL.
-    fig, axes = plt.subplots(3, 1, figsize=(16, 9))
-    sdl_plot = SDLPlot(machines, jobs, op_durations, makespan)
-    sdl_plot.plotSchedule(axes[0], opt_schedule)
-    sdl_plot.plotJobs(axes[1])
-    sdl_plot.plotMachines(axes[2])
-    fig.tight_layout()
-    plt.savefig('figures/ilp-Mar1.png', dpi=300)
-    plt.show()
+    plotAll(opt_schedule, machines, jobs, op_durations, makespan, 'ilp-schedule.png')
+
+
+def genetic_main(machines: List[Machine],
+                 operations: List[Operation],
+                 op_durations: Dict[OpCode, int],
+                 jobs: List[Job]):
+    lab = SDLLab(machines, set(operations), op_durations)
+    makespan, sjs, ms = greedy.solve(lab, jobs)
+    greedy_schedule = renderSchedule(ms)
+    plotAll(greedy_schedule, machines, jobs, op_durations, makespan, 'greedy-schedule-genetic.png')
+    flattened_schedule = []
+    machine_selection = []
+    operation_sequence = []
+    for job_id_1, job_decision in enumerate(sjs):
+        for step in job_decision:
+            flattened_schedule.append((job_id_1 + 1, step[0] + 1, step[1]))
+            # step[0] is machine id - 1, step[1] is start time
+
+    flattened_copy = flattened_schedule.copy()
+    # print("flattened copy:", flattened_copy)
+    for job_id, machine_id, start_time in flattened_copy:
+        machine_selection.append(machine_id)
+    flattened_copy = sorted(flattened_copy, key=lambda x: x[2])
+    print("flattened copy:", flattened_copy)
+    for job_id, machine_id, start_time in flattened_copy:
+        operation_sequence.append(job_id)
+        # machine_selection.append(machine_id)
+    makespan2, sjs2, ms2 = schedule_from_chromosome(machine_selection, operation_sequence, lab, jobs)
+    reconstructed_schedule = renderSchedule(ms2)
+    plotAll(reconstructed_schedule, machines, jobs, op_durations, makespan, 'reconstructed-schedule-genetic.png')
+    print("sjs:", sjs)
+    print("ms:", ms)
+    print('-----------')
+    print("reconstructed sjs:", sjs2)
+    print("reconstructed ms:", ms2)
+    print("makespan:", makespan)
+    print("makespan2:", makespan2)
 
 
 def greedy_main(
@@ -91,74 +123,19 @@ def greedy_main(
         msg: bool = False
 ):
     lab = SDLLab(machines, set(operations), op_durations)
-
     start = perf_counter()
     makespan, sjs, ms = greedy.solve(lab, jobs)
     end = perf_counter()
     logging.info(f'The greedily-found makespan: {makespan}.')
     logging.info(f'Time taken (in seconds) to solve the greedy schedule: {end - start}.')
-
-    greedy_schedule = []
-    for i, M_d in enumerate(ms):
-        for decision in M_d:
-            job_id, job_step, op, start_time = decision
-            run_time = op_durations[op.opcode]
-            machine_id = i
-            greedy_schedule.append(
-                Decision(
-                    job_id=job_id,
-                    operation=op,
-                    machine_id=machine_id,
-                    starting_time=start_time,
-                    completion_time=start_time + run_time,
-                    duration=run_time
-                )
-            )
-
+    greedy_schedule = renderSchedule(ms)
     schedule_verifier = ScheduleVerifier(greedy_schedule, lab, jobs)
     if schedule_verifier.verify_all():
         logging.info('The schedule provided by Greedy Algorithm is valid.')
     else:
         logging.error('The schedule provided by Greedy Algorithm is NOT valid.')
     # Plot the solver's decisions in MPL.
-    fig, axes = plt.subplots(3, 1, figsize=(16, 9))
-    sdl_plot = SDLPlot(machines, jobs, op_durations, makespan)
-    sdl_plot.plotSchedule(axes[0], greedy_schedule)
-    sdl_plot.plotJobs(axes[1])
-    sdl_plot.plotMachines(axes[2])
-    fig.tight_layout()
-    plt.savefig('figures/greedy-Mar1.png', dpi=300)
-    plt.show()
-
-
-def old_small_test():
-    random.seed(123)
-    operations = [
-        Operation(0, 'Peel', 3),
-        Operation(1, 'Transfer', 5),
-        Operation(2, 'GetPlate', 7),
-        Operation(3, 'Seal', 11)
-    ]
-    machines = [
-        Machine(0, 'Peeler', {operations[0]}),
-        Machine(1, 'pf400', {operations[1]}),
-        Machine(2, 'sciclops', {operations[2]}),
-        Machine(3, 'Sealer', {operations[3]})
-    ]
-    durations = {
-        op.opcode: op.duration for op in operations
-    }
-
-    jobs = []
-    number_of_jobs = 9
-    for i in range(number_of_jobs):
-        number_of_ops = random.randint(2, 6)
-        job_ops = [random.choice(operations) for _ in range(number_of_ops)]
-        job = Job(job_ops, 'job-' + str(i))
-        jobs.append(job)
-    print(operations)
-    # ilp_main(machines, operations, durations, jobs, msg=True)
-    greedy_main(machines, operations, durations, jobs, msg=True)
+    plotAll(greedy_schedule, machines, jobs, op_durations, makespan, 'greedy-schedule.png')
 
 
 def print_sdl(machines, jobs, operations):
@@ -173,28 +150,20 @@ def print_sdl(machines, jobs, operations):
         print(operation)
 
 
-def test_sdl_factory_greedy(filename):
-    random_state = random.RandomState(127)
-    machines, jobs, operations = create_sdl(
-        p=5, m=8, n=10, o=20, steps_min=5, steps_max=10, filename=filename, random_state=random_state)
+def test_sdl_factory(filename):
+    random_state = random.RandomState(157)
+    machines, jobs, operations, operations_to_machines = create_sdl(
+        p=3, m=5, n=3, o=20, steps_min=3, steps_max=6, filename=filename, random_state=random_state)
     durations = {
         op.opcode: op.duration for op in operations
     }
-    greedy_main(machines, operations, durations, jobs, msg=True)
-
-
-def test_sdl_factory_ilp(filename):
-    random_state = random.RandomState(123)
-    machines, jobs, operations = create_sdl(
-        p=5, m=8, n=10, o=20, steps_min=5, steps_max=10, filename=filename, random_state=random_state)
-    durations = {
-        op.opcode: op.duration for op in operations
-    }
-    ilp_main(machines, operations, durations, jobs, msg=True)
+    # greedy_main(machines, operations, durations, jobs, msg=True)
+    # ilp_main(machines, operations, durations, jobs, msg=True)
+    genetic_main(machines, operations, durations, jobs)
 
 
 if __name__ == '__main__':
     # filename = 'sdl/operations.txt'
     filename = 'sdl/depr/simple_operation_names.txt'
-    test_sdl_factory_greedy(filename=filename)
+    test_sdl_factory(filename=filename)
     # test_sdl_factory_ilp(filename=filename)

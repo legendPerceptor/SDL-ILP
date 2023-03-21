@@ -1,6 +1,7 @@
 from sdl.lab import Job, SDLLab, Machine, Operation
 from pulp import *
 from typing import List, Optional
+from sdl.lab import MachineSchedule
 
 def solve(lab: SDLLab, jobs: List[Job]):
     '''
@@ -46,7 +47,8 @@ def solve(lab: SDLLab, jobs: List[Job]):
                     min_start_time = max(machine_avail_time_counter[machine_id -1], job_next_step_avail_time[i])
                     on_machine = machine_id - 1
             SJs[i][job_step_counter[i]] = (on_machine, min_start_time)
-            Ms[on_machine].append((i, job_step_counter[i], cur_op, min_start_time))
+            Ms[on_machine].append(MachineSchedule(i, job_step_counter[i], cur_op, min_start_time,
+                                                  min_start_time + lab.durations[cur_op.opcode]))
             job_step_counter[i] += 1
             job_next_step_avail_time[i] = min_start_time + lab.durations[cur_op.opcode]
             machine_avail_time_counter[on_machine] = min_start_time + lab.durations[cur_op.opcode]

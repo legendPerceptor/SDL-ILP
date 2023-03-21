@@ -21,7 +21,8 @@ def create_sdl(p: int, m: int, n: int, o: int, steps_min: int, steps_max: int, f
     """
     operation_set = operation_factory.create_operation_set(filename=filename, random_state=random_state)
     operations = list(operation_factory.choose_n_operations(operation_set, o, random_state))
-    machines = machine_factory.create_machine_partition(operations=operations, p=p, m=m, random_state=random_state)
+    machines, operations_to_machines = machine_factory.create_machine_partition(operations=operations,
+                                                                                p=p, m=m, random_state=random_state)
     jobs = job_factory.create_job_set(operations=operations, num_of_jobs=n, steps_min=steps_min,
                                       steps_max=steps_max, random_state=random_state)
-    return machines, jobs, operations
+    return machines, jobs, operations, operations_to_machines
