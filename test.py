@@ -11,7 +11,7 @@ from typing import List, Dict
 from sdl.plot import SDLPlot, plotAll, renderSchedule
 from sdl.verify import ScheduleVerifier
 
-from sdl.algorithm.genetic import schedule_from_chromosome
+from sdl.algorithm.genetic import schedule_from_chromosome, Chromosome, Individual, genetic_solve
 
 FORMAT = '(%(levelname)s) [%(asctime)s]  %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -81,7 +81,7 @@ def ilp_main(
 def genetic_main(machines: List[Machine],
                  operations: List[Operation],
                  op_durations: Dict[OpCode, int],
-                 jobs: List[Job]):
+                 jobs: List[Job], random_state: random.RandomState):
     lab = SDLLab(machines, set(operations), op_durations)
     makespan, sjs, ms = greedy.solve(lab, jobs)
     greedy_schedule = renderSchedule(ms)
@@ -103,7 +103,12 @@ def genetic_main(machines: List[Machine],
     for job_id, machine_id, start_time in flattened_copy:
         operation_sequence.append(job_id)
         # machine_selection.append(machine_id)
-    makespan2, sjs2, ms2 = schedule_from_chromosome(machine_selection, operation_sequence, lab, jobs)
+
+    greedy_chromsome = Chromosome(machine_selection, operation_sequence)
+    greedy_individual = Individual(greedy_chromsome, lab, jobs)
+
+    # makespan2, sjs2, ms2 = schedule_from_chromosome(machine_selection, operation_sequence, lab, jobs)
+    makespan2, sjs2, ms2, best_chromesome = genetic_solve(lab, jobs, random_state, [greedy_individual], 10, 5)
     reconstructed_schedule = renderSchedule(ms2)
     plotAll(reconstructed_schedule, machines, jobs, op_durations, makespan, 'reconstructed-schedule-genetic.png')
     print("sjs:", sjs)
@@ -151,7 +156,7 @@ def print_sdl(machines, jobs, operations):
 
 
 def test_sdl_factory(filename):
-    random_state = random.RandomState(157)
+    random_state = random.RandomState(67)
     machines, jobs, operations, operations_to_machines = create_sdl(
         p=3, m=5, n=3, o=20, steps_min=3, steps_max=6, filename=filename, random_state=random_state)
     durations = {
@@ -159,7 +164,7 @@ def test_sdl_factory(filename):
     }
     # greedy_main(machines, operations, durations, jobs, msg=True)
     # ilp_main(machines, operations, durations, jobs, msg=True)
-    genetic_main(machines, operations, durations, jobs)
+    genetic_main(machines, operations, durations, jobs, random_state)
 
 
 if __name__ == '__main__':
