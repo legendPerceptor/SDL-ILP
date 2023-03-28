@@ -31,3 +31,5 @@ class ScheduleVerifier:
 
     def verify_all(self):
         return self.verify_job_steps() and self.verify_machine_availabilities()
+
+

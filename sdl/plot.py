@@ -1,9 +1,18 @@
 import matplotlib.pyplot as plt
 from sdl.lab import Decision, Job, Machine, Operation
+import numpy as np
+
+def generate_colors(num_colors):
+    random_state = np.random.RandomState(120)
+    colors = ['#{:02x}{:02x}{:02x}'.format(*random_state.randint(0, 256, size=3)) for _ in range(num_colors)]
+    return colors
+
 class SDLPlot:
     def __init__(self, machines, jobs, op_durations, makespan):
         self.colors = ['#1abc9c', '#f1c40f', '#f39c12', '#c0392b', '#2980b9',
               '#8e44ad', '#34495e', '#bdc3c7', '#95a5a6', '#2c3e50', '#7f8c8d']
+        if len(jobs) > 11:
+            self.colors.extend(generate_colors(len(jobs) - 11))
         self.machines = machines
         self.op_durations = op_durations
         self.makespan = makespan

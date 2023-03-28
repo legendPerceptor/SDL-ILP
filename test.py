@@ -1,5 +1,6 @@
 import logging
 import matplotlib.pyplot as plt
+import numpy as np
 import numpy.random as random
 import sdl.algorithm.opt_2010 as ilp
 import sdl.algorithm.list_scheduling as greedy
@@ -10,6 +11,8 @@ from time import perf_counter
 from typing import List, Dict
 from sdl.plot import SDLPlot, plotAll, renderSchedule
 from sdl.verify import ScheduleVerifier
+from sdl.storage import Storage
+
 
 from sdl.algorithm.genetic import schedule_from_chromosome, Chromosome, Individual, genetic_solve
 
@@ -78,14 +81,9 @@ def ilp_main(
     plotAll(opt_schedule, machines, jobs, op_durations, makespan, 'ilp-schedule.png')
 
 
-def genetic_main(machines: List[Machine],
-                 operations: List[Operation],
-                 op_durations: Dict[OpCode, int],
-                 jobs: List[Job], random_state: random.RandomState):
-    lab = SDLLab(machines, set(operations), op_durations)
+def build_greedy_individual(lab, jobs):
     makespan, sjs, ms = greedy.solve(lab, jobs)
-    greedy_schedule = renderSchedule(ms)
-    plotAll(greedy_schedule, machines, jobs, op_durations, makespan, 'greedy-schedule-genetic.png')
+    # greedy_schedule = renderSchedule(ms)
     flattened_schedule = []
     machine_selection = []
     operation_sequence = []
@@ -99,25 +97,43 @@ def genetic_main(machines: List[Machine],
     for job_id, machine_id, start_time in flattened_copy:
         machine_selection.append(machine_id)
     flattened_copy = sorted(flattened_copy, key=lambda x: x[2])
-    print("flattened copy:", flattened_copy)
+    # print("flattened copy:", flattened_copy)
     for job_id, machine_id, start_time in flattened_copy:
         operation_sequence.append(job_id)
         # machine_selection.append(machine_id)
 
     greedy_chromsome = Chromosome(machine_selection, operation_sequence)
     greedy_individual = Individual(greedy_chromsome, lab, jobs)
+    return greedy_individual
+
+def genetic_main(machines: List[Machine],
+                 operations: List[Operation],
+                 op_durations: Dict[OpCode, int],
+                 jobs: List[Job], random_state: random.RandomState,
+                 filename: str = 'genetic-schedule.pkl'):
+    lab = SDLLab(machines, set(operations), op_durations)
 
     # makespan2, sjs2, ms2 = schedule_from_chromosome(machine_selection, operation_sequence, lab, jobs)
-    makespan2, sjs2, ms2, best_chromesome = genetic_solve(lab, jobs, random_state, [greedy_individual], 10, 5)
+    start = perf_counter()
+    makespan2, sjs2, ms2, best_chromesome, fitness_history =\
+        genetic_solve(lab, jobs, random_state, initial_population=None, population_size=100, max_generations=100)
+    end = perf_counter()
+
+    logging.info(f'The genetic algorithm found makespan: {makespan2}.')
+    logging.info(f'Time taken (in seconds) to solve the genetic schedule: {end - start}.')
     reconstructed_schedule = renderSchedule(ms2)
-    plotAll(reconstructed_schedule, machines, jobs, op_durations, makespan, 'reconstructed-schedule-genetic.png')
-    print("sjs:", sjs)
-    print("ms:", ms)
-    print('-----------')
-    print("reconstructed sjs:", sjs2)
-    print("reconstructed ms:", ms2)
-    print("makespan:", makespan)
-    print("makespan2:", makespan2)
+    # plotAll(reconstructed_schedule, machines, jobs, op_durations, makespan2, 'reconstructed-schedule-genetic.png')
+    storage = Storage(filename)
+    storage.set_data(lab, jobs, reconstructed_schedule, makespan2, end - start)
+    storage.set_makespan_genetic_history(fitness_history)
+    storage.save()
+    # print("sjs:", sjs)
+    # print("ms:", ms)
+    # print('-----------')
+    # print("reconstructed sjs:", sjs2)
+    # print("reconstructed ms:", ms2)
+    # print("makespan:", makespan)
+    # print("makespan2:", makespan2)
 
 
 def greedy_main(
@@ -125,6 +141,7 @@ def greedy_main(
         operations: List[Operation],
         op_durations: Dict[OpCode, int],
         jobs: List[Job],
+        filename: str = "data/greedy_schedule123.pkl",
         msg: bool = False
 ):
     lab = SDLLab(machines, set(operations), op_durations)
@@ -140,8 +157,24 @@ def greedy_main(
     else:
         logging.error('The schedule provided by Greedy Algorithm is NOT valid.')
     # Plot the solver's decisions in MPL.
-    plotAll(greedy_schedule, machines, jobs, op_durations, makespan, 'greedy-schedule.png')
+    # plotAll(greedy_schedule, machines, jobs, op_durations, makespan, 'greedy-schedule.png')
+    storage = Storage(filename)
+    storage.set_data(lab, jobs, greedy_schedule, makespan, end - start)
+    storage.save()
 
+def load_schedule_from_file(filename):
+    storage = Storage(filename)
+    storage.load()
+    schedule = storage.data["schedule"]
+    machines = storage.data["machines"]
+    jobs = storage.data["jobs"]
+    op_durations = storage.data["durations"]
+    makespan = storage.data["makespan"]
+    runtime = storage.data['runtime']
+    # print("reloaded makespan:", makespan)
+    # plotAll(schedule, machines, jobs, op_durations, storage.data["makespan"], 'greedy-schedule-reload.png')
+    # return schedule, machines, jobs, op_durations, makespan, runtime
+    return storage
 
 def print_sdl(machines, jobs, operations):
     print("Machines:")
@@ -162,13 +195,74 @@ def test_sdl_factory(filename):
     durations = {
         op.opcode: op.duration for op in operations
     }
-    # greedy_main(machines, operations, durations, jobs, msg=True)
+    greedy_main(machines, operations, durations, jobs)
     # ilp_main(machines, operations, durations, jobs, msg=True)
-    genetic_main(machines, operations, durations, jobs, random_state)
+    # genetic_main(machines, operations, durations, jobs, random_state)
 
+def test_storage_plot_performance(filename):
+    random_state = random.RandomState(101)
+    p, m, n, o, steps_min, steps_max = 3, 5, 3, 20, 3, 6
+    for i in range(10):
+        machines, jobs, operations, operations_to_machines = create_sdl(
+            p=p, m=m, n=n, o=o, steps_min=steps_min, steps_max=steps_max, filename=filename, random_state=random_state)
+        durations = {
+            op.opcode: op.duration for op in operations
+        }
+        greedy_main(machines, operations, durations, jobs, filename=f'data/greedy_schedule_makespan-{i}.pkl')
+        # genetic_main(machines, operations, durations, jobs, random_state, filename=f'data/genetic_makespan-{i}.pkl')
+        p += 1
+        m += 2
+        n += 5
+        o += 5
+        steps_min += 2
+        steps_max += 4
+
+def load_test_storage_performance():
+    greedy_stores = []
+    genetic_stores = []
+    for i in range(10):
+        greedy_store = load_schedule_from_file(f'data/greedy_schedule-{i}.pkl')
+        greedy_stores.append(greedy_store)
+        genetic_store = load_schedule_from_file(f'data/genetic_makespan-{i}.pkl')
+        genetic_stores.append(genetic_store)
+    greedy_makespans = [store.data['makespan'] for store in greedy_stores]
+    genetic_makespans = [store.data['makespan'] for store in genetic_stores]
+    greedy_runtimes = [store.data['runtime'] for store in greedy_stores]
+    genetic_runtimes = [store.data['runtime'] for store in genetic_stores]
+    fig, axes = plt.subplots(1, 2)
+    xx = np.arange(1, 11)
+    ax = axes[0]
+    ax.plot(xx, greedy_makespans, label='Greedy', linestyle='--', color='red')
+    ax.plot(xx, genetic_makespans, label='Genetic', linestyle='-', color='blue')
+    ax.set_xlabel('Complexity')
+    ax.set_ylabel('Makespan')
+    ax.legend()
+    ax = axes[1]
+    ax.plot(xx, greedy_runtimes, label='Greedy', linestyle='--', color='red')
+    ax.plot(xx, genetic_runtimes, label='Genetic', linestyle='-', color='blue')
+    ax.set_xlabel('Complexity')
+    ax.set_ylabel('Runtime (s)')
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig('figures/compare_greedy_genetic_makespan.png', dpi=300)
+    plt.show()
+
+    fig, ax = plt.subplots(1, 1)
+    xx = np.arange(1, 102)
+    for i, store in enumerate(genetic_stores):
+        ax.plot(xx, store.data['makespan_history'], label=f'complexity-{i+1}')
+    ax.set_xlabel('Generations')
+    ax.set_ylabel('Makespan')
+    ax.legend(loc='upper center', ncol=2)
+    plt.tight_layout()
+    plt.savefig('figures/genetic_makespan_history.png', dpi=300)
+    plt.show()
 
 if __name__ == '__main__':
     # filename = 'sdl/operations.txt'
     filename = 'sdl/depr/simple_operation_names.txt'
-    test_sdl_factory(filename=filename)
+    load_test_storage_performance()
+    # test_storage_plot_performance(filename=filename)
+    # test_sdl_factory(filename=filename)
+    # test_load_from_file("data/greedy_schedule123.pkl")
     # test_sdl_factory_ilp(filename=filename)

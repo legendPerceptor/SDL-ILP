@@ -28,14 +28,14 @@ def schedule_from_chromosome(machine_selection, operation_sequence, lab: SDLLab,
     count = 0
     map_: Dict[int, int] = {}  # job_id -> step_id
 
-    print("machine selection:", machine_selection)
-    print("operation sequence:", operation_sequence)
+    # print("machine selection:", machine_selection)
+    # print("operation sequence:", operation_sequence)
     makespan = 0
     for i, job in enumerate(jobs):
         for j, step in enumerate(job.ops):
             SJs[i][j] = (machine_selection[count] - 1, 0)
             count += 1
-    print("Partial SJs:", SJs)
+    # print("Partial SJs:", SJs)
     for i, job_id in enumerate(operation_sequence):
         if job_id not in map_:
             map_[job_id] = 0
@@ -51,13 +51,13 @@ def schedule_from_chromosome(machine_selection, operation_sequence, lab: SDLLab,
         duration = lab.durations[jobs[job_id - 1].ops[map_[job_id]].opcode]
         starting_time, index = find_starting_time(Ms[machine_id], duration,
                                                   last_step_ending_time)
-        print(
-            f"job_id: {job_id}, step: {map_[job_id]}, duration: {duration}, last_step_ending_time: {last_step_ending_time}, index: {index}")
+        # print(
+        #     f"job_id: {job_id}, step: {map_[job_id]}, duration: {duration}, last_step_ending_time: {last_step_ending_time}, index: {index}")
         # TODO: check job_id or job_id - 1
         ending_time = starting_time + duration
         Ms[machine_id].insert(index, MachineSchedule(job_id - 1, map_[job_id], jobs[job_id - 1].ops[map_[job_id]],
                                                      starting_time, ending_time))
-        print("machine_id:", Ms[machine_id])
+        # print("machine_id:", Ms[machine_id])
         SJs[job_id - 1][map_[job_id]] = (machine_id, starting_time)
         if ending_time > makespan:
             makespan = ending_time
@@ -106,7 +106,7 @@ class Individual:
                 count += len(job.ops)
                 continue
             else:
-                print(f"index: {index}, count: {count}, len(job.ops): {len(job.ops)}, L:{len(self.chromosome.machine_selection)}")
+                # print(f"index: {index}, count: {count}, len(job.ops): {len(job.ops)}, L:{len(self.chromosome.machine_selection)}")
                 step = job.ops[index - count]
                 self.chromosome.machine_selection[index] = random_state.choice(
                     list(self.lab.op_to_machine_ids[step.opcode]))
@@ -195,6 +195,9 @@ def genetic_solve(lab: SDLLab, jobs: List[Job], random_state: np.random.RandomSt
     best_chromosome = best_individual.chromosome
     best_SJs = best_individual.SJs
     best_Ms = best_individual.Ms
+
+    fitness_history = [best_fitness]
+
     for generation in range(max_generations):
         population.sort(key=lambda x: x.fitness)
         if population[0].fitness < best_fitness:
@@ -219,4 +222,5 @@ def genetic_solve(lab: SDLLab, jobs: List[Job], random_state: np.random.RandomSt
             if random_state.random() < mutation_rate:
                 individual.mutate_operation_sequence(random_state)
         population = new_population
-    return best_fitness, best_SJs, best_Ms, best_chromosome
+        fitness_history.append(best_fitness)
+    return best_fitness, best_SJs, best_Ms, best_chromosome, fitness_history
