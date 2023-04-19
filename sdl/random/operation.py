@@ -8,7 +8,7 @@ def create_operation(operation_id: int, operation_name: str, duration: int) -> O
     return Operation(operation_id, operation_name, duration)
 
 
-def create_operation_set(filename: str = 'operations.txt',
+def create_operation_set(filename: str = None,
                          random_state: Optional[np.random.RandomState] = None) -> List[Operation]:
     if random_state is None:
         random_state = np.random.RandomState()

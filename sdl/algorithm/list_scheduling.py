@@ -25,6 +25,7 @@ def solve(lab: SDLLab, jobs: List[Job]):
     Ms1 = [(J1, O1, t1),(J2, O2, t2), ...]
     Ms2 = [(J4, O8, t8),(J3, O9, t9), ...]
     '''
+
     SJs = [[(-1, 0) for _ in job] for job in jobs]
     Ms = [[] for _ in range(len(lab.machines))]
     job_step_counter = [0 for _ in range(len(jobs))]

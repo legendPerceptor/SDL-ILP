@@ -5,7 +5,7 @@ import numpy as np
 from typing import Optional
 
 
-def create_sdl(p: int, m: int, n: int, o: int, steps_min: int, steps_max: int, filename='operations.txt',
+def create_sdl(p: int, m: int, n: int, o: int, steps_min: int, steps_max: int, filename=None,
                random_state: Optional[np.random.RandomState] = None):
     """Create o operations, p partitions, m machines, and n jobs.
     Example: o = 10, p = 4, m = 6, n = 5
