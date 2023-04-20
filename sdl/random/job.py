@@ -14,7 +14,7 @@ def create_job_set(operations: List[Operation], num_of_jobs: int, steps_min: int
         random_state = np.random.RandomState()
     jobs = []
     for job_id in range(1, num_of_jobs + 1, 1):
-        n_operations = random_state.randint(steps_min, steps_max)
+        n_operations = random_state.randint(steps_min, steps_max) if steps_min < steps_max else steps_min
         cur_operations = random_state.choice(operations, n_operations, replace=True)
         jobs.append(create_job(job_id, f'J_{job_id}', list(cur_operations)))
     return jobs

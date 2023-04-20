@@ -13,7 +13,7 @@ def create_operation_set(filename: str = None,
     if random_state is None:
         random_state = np.random.RandomState()
     if filename is None:
-        operations = [f'OP_{i}' for i in range(1, 100)]
+        operations = [f'OP_{i}' for i in range(1, 200)]
     else:
         try:
             with open(filename, 'r') as f:

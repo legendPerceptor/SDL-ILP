@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib
 from sdl.lab import Decision, Job, Machine, Operation
 import numpy as np
 
@@ -17,6 +18,14 @@ class SDLPlot:
         self.op_durations = op_durations
         self.makespan = makespan
         self.jobs = jobs
+        length = 0
+        for i, m in enumerate(self.machines):
+            total_length = 0
+            for j, op in enumerate(m.ops):
+                total_length += self.op_durations[op.opcode]
+            if total_length > length:
+                length = total_length
+        self.length = max(length, self.makespan)
 
     def plotMachines(self, ax):
         for i, m in enumerate(self.machines):
@@ -33,13 +42,13 @@ class SDLPlot:
                     start_time + self.op_durations[op.opcode] / 2,
                     i,
                     f'{j}: {op.name}',
-                    fontsize=6,
+                    fontsize=10,
                     ha='center',
                     va='center'
                 )
                 start_time += self.op_durations[op.opcode]
         ax.set_xlabel('Time')
-        ax.set_xlim(0, self.makespan)
+        ax.set_xlim(0, self.length)
         ax.set_ylabel('Machine ID')
         ax.set_title('Machine Capabilities')
 
@@ -58,12 +67,12 @@ class SDLPlot:
                     start_time + self.op_durations[op.opcode] / 2,
                     i,
                     f'{i}-{j}: {op.name}',
-                    fontsize=6,
+                    fontsize=10,
                     ha='center',
                     va='center'
                 )
                 start_time += self.op_durations[op.opcode]
-        ax.set_xlim(0, self.makespan)
+        ax.set_xlim(0, self.length)
         ax.set_xlabel('Time')
         ax.set_ylabel('Job ID')
         ax.set_title('Jobs')
@@ -81,11 +90,12 @@ class SDLPlot:
                 decision.starting_time + decision.duration / 2,
                 decision.machine_id,
                 f'{decision.job_id}: {decision.operation.name}',
-                fontsize=6,
+                fontsize=10,
                 ha='center',
                 va='center'
             )
         ax.set_ylim(-0.5, len(self.machines) - 0.5)
+        ax.set_xlim(0, self.length)
         ax.set_xlabel('Time')
         ax.set_ylabel('Machine')
         ax.set_title('Schedule')
@@ -112,8 +122,28 @@ def renderSchedule(ms):
             )
     return schedule
 
+def renderILPSchedule(out, lab, jobs):
+    x = out['x']  # machine-operation assignments
+    s = out['s']  # starting times
+    c = out['c']  # completion times
+    opt_schedule = []
+    for j, job in enumerate(jobs):
+        for o, op in enumerate(job.ops):
+            for m in lab.machines_that_can_do(op):
+                if x[j, o, m] == 1:
+                    opt_schedule.append(Decision(
+                        job_id=j,
+                        operation=op,
+                        machine_id=m - 1,  # for plotting, the machine id is actually the real id - 1
+                        starting_time=s[j, o, m],
+                        completion_time=c[j, o, m],
+                        duration=c[j, o, m] - s[j, o, m]
+                    ))
+    return opt_schedule
+
 def plotAll(schedule, machines, jobs, op_durations, makespan, filename):
     fig, axes = plt.subplots(3, 1, figsize=(16, 9))
+    matplotlib.rcParams['font.size'] = 16
     sdl_plot = SDLPlot(machines, jobs, op_durations, makespan)
     sdl_plot.plotSchedule(axes[0], schedule)
     sdl_plot.plotJobs(axes[1])
