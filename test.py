@@ -3,7 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as random
-import sdl.algorithm.opt_2010 as ilp
+import sdl.algorithm.opt as ilp
 import sdl.algorithm.list_scheduling as greedy
 from sdl.random.sdl import create_sdl
 

@@ -36,7 +36,7 @@ def solve(lab: SDLLab, jobs: List[Job]):
     while True:
         finished_job_count = 0
         for job in jobs:
-            i = job.idx - 1 # job index starts from 1
+            i = job.idx - 1  # job index starts from 1
             if job_finished[i]:
                 finished_job_count += 1
                 continue
