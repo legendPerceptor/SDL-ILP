@@ -65,7 +65,8 @@ class Grasp:
                     selected_machine_slot_index = slot_index
                     selected_start_time = min_start_time
                     next_makespan = min_start_time + operation.duration
-
+            if finished_job_count == len(jobs):
+                break
             SJs[selected_job_id][selected_step] = (selected_machine, selected_start_time)
             cur_op = jobs[selected_job_id].ops[selected_step]
             Ms[selected_machine].insert(selected_machine_slot_index,
@@ -76,8 +77,7 @@ class Grasp:
             machine_avail_time_counter[selected_machine] = selected_start_time + lab.durations[cur_op.opcode]
             if job_step_counter[selected_job_id] == len(jobs[selected_job_id]):
                 job_finished[selected_job_id] = True
-            if finished_job_count == len(jobs):
-                break
+
         makespan = max(job_next_step_avail_time)
         self.Ms = Ms
         self.SJs = SJs
