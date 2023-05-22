@@ -3,20 +3,18 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as random
-import sdl.algorithm.opt_2010 as ilp
-import sdl.algorithm.list_scheduling as greedy
-from sdl.random.sdl import create_sdl
+import sdl.algorithm.scheduling.opt as ilp
+import sdl.algorithm.scheduling.list_scheduling as greedy
 
+from pathlib import Path
+from sdl.algorithm.scheduling.genetic import Chromosome, Individual, genetic_solve
 from sdl.lab import *
-from time import perf_counter
-from typing import List, Dict
-from sdl.plot import SDLPlot, plotAll, renderSchedule
+from sdl.random.sdl import create_sdl
+from sdl.plot import plotAll, renderSchedule
 from sdl.verify import ScheduleVerifier
 from sdl.storage import Storage
-
-import multiprocessing
-
-from sdl.algorithm.genetic import schedule_from_chromosome, Chromosome, Individual, genetic_solve
+from time import perf_counter
+from typing import List, Dict
 
 FORMAT = '(%(levelname)s) [%(asctime)s]  %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -39,7 +37,7 @@ def ilp_main(
     machines : list[Machine]
         List of the machines available in the setup.
     operations : list[Operation]
-        List of operations that can be done in the setup.
+        List of operation_pool that can be done in the setup.
     op_durations : dict[OpCode, int]
         Mapping from operation codes to the length of time it takes to complete.
     jobs : int
@@ -53,9 +51,12 @@ def ilp_main(
     end = perf_counter()
 
     makespan = out['makespan']
-    x = out['x']  # machine-operation assignments
-    s = out['s']  # starting times
-    c = out['c']  # completion times
+    # x = out['x']  # machine-operation assignments
+    # s = out['s']  # starting times
+    # c = out['c']  # completion times
+    x = out.machine_operations
+    s = out.starting_times
+    c = out.completion_times
 
     logging.info(f'Time taken (in seconds) to solve the ILP: {end - start}.')
     logging.info(f'The optimally-found makespan: {makespan}.')
@@ -108,18 +109,22 @@ def build_greedy_individual(lab, jobs):
     greedy_individual = Individual(greedy_chromsome, lab, jobs)
     return greedy_individual
 
-def genetic_main(machines: List[Machine],
-                 operations: List[Operation],
-                 op_durations: Dict[OpCode, int],
-                 jobs: List[Job], random_state: random.RandomState,
-                 storage: Storage = None):
+
+def genetic_main(
+        machines: List[Machine],
+        operations: List[Operation],
+        op_durations: Dict[OpCode, int],
+        jobs: List[Job], random_state: random.RandomState,
+        storage: Storage = None
+):
     lab = SDLLab(machines, set(operations), op_durations)
 
     # makespan2, sjs2, ms2 = schedule_from_chromosome(machine_selection, operation_sequence, lab, jobs)
     start = perf_counter()
     greedy_individual = build_greedy_individual(lab, jobs)
-    makespan2, sjs2, ms2, best_chromesome, fitness_history =\
-        genetic_solve(lab, jobs, random_state, initial_population=[greedy_individual], population_size=100, max_generations=100)
+    makespan2, sjs2, ms2, best_chromesome, fitness_history = \
+        genetic_solve(lab, jobs, random_state, initial_population=[greedy_individual], population_size=100,
+                      max_generations=100)
     end = perf_counter()
 
     logging.info(f'The genetic algorithm found makespan: {makespan2}.')
@@ -166,6 +171,7 @@ def greedy_main(
         storage.set_data(lab, jobs, greedy_schedule, makespan, end - start)
         storage.save()
 
+
 def load_schedule_from_file(filename):
     storage = Storage(filename)
     storage.load()
@@ -179,6 +185,7 @@ def load_schedule_from_file(filename):
     # plotAll(schedule, machines, jobs, op_durations, storage.data["makespan"], 'greedy-schedule-reload.png')
     # return schedule, machines, jobs, op_durations, makespan, runtime
     return storage
+
 
 def print_sdl(machines, jobs, operations):
     print("Machines:")
@@ -200,8 +207,9 @@ def test_sdl_factory(filename):
         op.opcode: op.duration for op in operations
     }
     greedy_main(machines, operations, durations, jobs, random_state)
-    # ilp_main(machines, operations, durations, jobs, msg=True)
-    # genetic_main(machines, operations, durations, jobs, random_state)
+    # ilp_main(machines, operation_pool, durations, jobs, msg=True)
+    # genetic_main(machines, operation_pool, durations, jobs, random_state)
+
 
 def test_storage_plot_performance(fn, filename, csv_file):
     random_state = random.RandomState(101)
@@ -214,8 +222,8 @@ def test_storage_plot_performance(fn, filename, csv_file):
         }
         storage = Storage(filename=filename.format(index=i), csv_file=csv_file)
         storage.set_meta_data(p, m, n, o, steps_min, steps_max, algorithm_name=fn.__name__)
-        # greedy_main(machines, operations, durations, jobs, filename=f'data/greedy_schedule_makespan-{i}.pkl')
-        # genetic_main(machines, operations, durations, jobs, random_state, filename=f'data/genetic_makespan-{i}.pkl')
+        # greedy_main(machines, operation_pool, durations, jobs, filename=f'data/greedy_schedule_makespan-{i}.pkl')
+        # genetic_main(machines, operation_pool, durations, jobs, random_state, filename=f'data/genetic_makespan-{i}.pkl')
         fn(machines, operations, durations, jobs, random_state, storage)
         p += 1
         m += 2
@@ -223,6 +231,7 @@ def test_storage_plot_performance(fn, filename, csv_file):
         o += 5
         steps_min += 2
         steps_max += 4
+
 
 def test_sensitivity(fn, filename, csv_file):
     random_state = random.RandomState(101)
@@ -233,7 +242,7 @@ def test_sensitivity(fn, filename, csv_file):
                                               range(10, 101, 5),
                                               range(10, 101, 5),
                                               range(10, 101, 5)):
-        steps_min, steps_max = n_steps, n_steps
+        steps_min, steps_max = n_steps, n_steps + 1
         machines, jobs, operations, operations_to_machines = create_sdl(
             p=p, m=m, n=n, o=o, steps_min=steps_min, steps_max=steps_max, random_state=random_state)
         durations = {
@@ -241,11 +250,12 @@ def test_sensitivity(fn, filename, csv_file):
         }
         storage = Storage(filename=filename.format(index=i), csv_file=csv_file, save_pkl=False)
         storage.set_meta_data(p, m, n, o, steps_min, steps_max, i, algorithm_name=fn.__name__)
-        # greedy_main(machines, operations, durations, jobs, filename=f'data/greedy_schedule_makespan-{i}.pkl')
-        # genetic_main(machines, operations, durations, jobs, random_state, filename=f'data/genetic_makespan-{i}.pkl')
+        # greedy_main(machines, operation_pool, durations, jobs, filename=f'data/greedy_schedule_makespan-{i}.pkl')
+        # genetic_main(machines, operation_pool, durations, jobs, random_state, filename=f'data/genetic_makespan-{i}.pkl')
         fn(machines, operations, durations, jobs, random_state, storage)
         i += 1
         print('i:', i)
+
 
 def load_test_storage_performance(greedy_file_template, genetic_file_template):
     greedy_stores = []
@@ -282,7 +292,7 @@ def load_test_storage_performance(greedy_file_template, genetic_file_template):
     fig, ax = plt.subplots(1, 1)
     xx = np.arange(1, 102)
     for i, store in enumerate(genetic_stores):
-        ax.plot(xx, store.data['makespan_history'], label=f'complexity-{i+1}')
+        ax.plot(xx, store.data['makespan_history'], label=f'complexity-{i + 1}')
     ax.set_xlabel('Generations')
     ax.set_ylabel('Makespan')
     ax.legend(loc='upper center', ncol=2)
@@ -292,7 +302,7 @@ def load_test_storage_performance(greedy_file_template, genetic_file_template):
 
 
 if __name__ == '__main__':
-    # filename = 'sdl/operations.txt'
+    # filename = 'sdl/operation_pool.txt'
     optimized_genetic_filename = 'data/optimized-genetic/genetic_makespan-{index}.pkl'
     optimized_genetic_csv_file = 'data/optimized-genetic/genetic_makespan.csv'
     greedy_filename = 'data/greedy/greedy_makespan-{index}.pkl'
@@ -310,7 +320,7 @@ if __name__ == '__main__':
 
     # test_storage_plot_performance(greedy_main, filename=greedy_filename, csv_file=greedy_csv_file)
     for n_trial in range(4):
-        greedy_csv_file = f'data/greedy/greedy_sensitivity-apr19-{n_trial}.csv'
+        greedy_csv_file = Path(f'data/greedy/greedy_sensitivity-apr19-{n_trial}.csv')
         test_sensitivity(greedy_main, filename=greedy_filename, csv_file=greedy_csv_file)
 
     # test_storage_plot_performance(genetic_main, filename=optimized_genetic_filename,

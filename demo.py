@@ -1,8 +1,8 @@
 import numpy.random as random
 
-
 from sdl.lab import *
-from sdl.opt import *
+from sdl.algorithm.scheduling.opt import *
+
 
 def main() -> None:
     ops = [
@@ -26,8 +26,8 @@ def main() -> None:
         Job([ops[i] for i in [0, 1, 2, 3, 0]], 'job3'),
         Job([ops[i] for i in [0, 1, 2, 2, 2]], 'job4'),
     ]
-    
-    out = schedule(lab, jobs)
+
+    out = solve(lab, jobs)
     print(f'Makespan: {out["makespan"].value()}')
     b = out["b"]
     for j, job in enumerate(jobs):

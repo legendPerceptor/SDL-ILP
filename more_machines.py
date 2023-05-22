@@ -9,8 +9,17 @@ from sdl.opt import *
 import time
 import matplotlib.pyplot as plt
 
+
 class OperationSchedule:
-    def __init__(self, job_index: int, op: Operation, machine: Machine, step: int, start: int, duration: int):
+    def __init__(
+            self,
+            ob_index: int,
+            op: Operation,
+            machine: Machine,
+            step: int,
+            start: int,
+            duration: int
+    ):
         self.job_index = job_index
         self.op = op
         self.machine = machine
@@ -29,7 +38,7 @@ def displayJobs(jobs: List[Job]):
     for i, job in enumerate(jobs):
         ops = [op.name for op in job.ops]
         print(f'Job {i}-> {job.name} steps: {ops}')
-        
+
 
 def visualize_schedule(
         operation_schedules: List[OperationSchedule],
@@ -55,7 +64,7 @@ def visualize_schedule(
             ha='center',
             va='center'
         )
-    ax.set_ylim(0, len(total_machines)+1)
+    ax.set_ylim(0, len(total_machines) + 1)
     ax.set_xlabel('Time')
     ax.set_ylabel('Machine')
     # ax.set_yticklabels([machine.name for machine in total_machines])
@@ -77,20 +86,19 @@ def main(num_machines: int, num_jobs: int):
         Machine(2, {ops[2]}, 'sciclops'),
         Machine(3, {ops[3]}, 'Sealer')
     ]
-    
+
     total_machines = machs.copy()
     for i in range(4, num_machines):
         m_type = random.randint(0, 3)
         new_machine = Machine(i, machs[m_type].ops, machs[m_type].name + '-' + str(i))
         total_machines.append(new_machine)
-    
-    
+
     durations = {opcode: dur for opcode, dur in enumerate([8, 13, 18, 25])}
     lab = SDLLab(total_machines, ops, durations)
 
     jobs = []
-        # Job([ops[i] for i in [0, 1, 2]], 'job1'),
-    
+    # Job([ops[i] for i in [0, 1, 2]], 'job1'),
+
     for i in range(num_jobs):
         number_of_ops = 4  # random.randint(2, 6)
         operations = [
@@ -98,21 +106,25 @@ def main(num_machines: int, num_jobs: int):
         ]
         job = Job(operations, 'job' + str(i))
         jobs.insert(0, job)
-    
+
     start = time.perf_counter()
     out = schedule(lab, jobs, msg=False)
     end = time.perf_counter()
     print(f'It took {end - start} seconds to solve with ILP.')
     displayMachines(total_machines)
     displayJobs(jobs)
-    
+
     print(f'\nMakespan: {out["makespan"].value()}\n')
     b = out["b"]
     x = out["x"]
     t = out["t"]
     num_slots = sum(len(j) for j in jobs)
     table_msg = []
-    header = ['job', 'operation', 'machine (name)', 'machine (id)', 'machine slot', 'slot time (t)', 'begin time (b)', 'x[j,o,m,s]']    
+    header = [
+        'job', 'operation', 'machine (name)', 'machine (id)',
+        'machine slot', 'slot time (t)', 'begin time (b)',
+        'x[j,o,m,s]'
+    ]
     machine_steps = defaultdict(list)
 
     all_ms_pairs = []
@@ -136,7 +148,6 @@ def main(num_machines: int, num_jobs: int):
         table.append(machine_table_row)
 
     print(tabulate(table, headers=table_header))
-
 
     # for j, job in enumerate(jobs):
     #     message = ""
@@ -173,17 +184,17 @@ def main(num_machines: int, num_jobs: int):
     # print(tabulate(table_msg, header))
     # print('')
     visualize_schedule(final_schedule, total_machines, out["makespan"].value())
-    
+
     # for m, steps in machine_steps.items():
     #     has_duplicates = len(steps) == len(set(steps))
     #     print(f'Machine({m}): does {"NOT" if has_duplicates else ""} have duplicates! ({steps})')
     return out["makespan"].value(), end - start
-    
-    
+
+
 def test_and_plot():
     n_machine_list = np.arange(5, 30, 5)
     n_job_list = np.arange(1, 30, 1)
-    
+
     for number_of_machines in n_machine_list:
         solve_time_list = []
         make_span_list = []
@@ -199,21 +210,21 @@ def test_and_plot():
             make_span_list.append(sp)
         n_machines = [number_of_machines] * len(n_job_list)
         print('saving data for ', number_of_machines, ' machines')
-        plot_df = pd.DataFrame(
-            data = { 'solve_time': solve_time_list,
+        plot_df = pd.DataFrame({
+            'solve_time': solve_time_list,
             'total_time': total_time_list, 'makespan': make_span_list,
             'n_jobs': n_job_list, 'n_machines': n_machines}
         )
         plot_df.to_csv(f'./data/{number_of_machines}_machines.csv', index=False)
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
-        ax[0].plot(n_job_list, solve_time_list, 'o-', color='#f39c12',label='solve time')
+        ax[0].plot(n_job_list, solve_time_list, 'o-', color='#f39c12', label='solve time')
         ax[0].set_xlabel('Number of jobs')
         ax[0].set_ylabel('Solve Time (s)')
         ax[0].set_title(f'{number_of_machines} machines')
-        ax[1].plot(n_job_list, make_span_list, 'o-', color='#2980b9',label='makespan')
+        ax[1].plot(n_job_list, make_span_list, 'o-', color='#2980b9', label='makespan')
         ax[1].set_xlabel('Number of jobs')
         ax[1].set_ylabel('Makespan (s)')
-        plt.savefig(f'./figures/{number_of_machines}_machines.png')    
+        plt.savefig(f'./figures/{number_of_machines}_machines.png')
 
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@ from sdl.lab import SDLLab, Job, Decision
 from typing import List
 import pandas as pd
 
+
 class Storage:
     def __init__(self, filename: str = '', csv_file: str = '', save_pkl: bool = True):
         self.pd_data_frame = None
@@ -16,15 +17,16 @@ class Storage:
     def set_data(self, lab: SDLLab, jobs: List[Job], schedule: List[Decision], makespan: int, runtime: float):
         self.data = {
             'machines': lab.machines,
-            'operations': lab.operations,
+            'operation_pool': lab.operations,
             'durations': lab.durations,
             'jobs': jobs,
             'schedule': schedule,
             'makespan': makespan,
             'runtime': runtime,
         }
-    def set_meta_data(self, p:int, m:int, n:int, o:int, steps_min:int, steps_max:int, index: int,
-                      algorithm_name: str ='unspecified'):
+
+    def set_meta_data(self, p: int, m: int, n: int, o: int, steps_min: int, steps_max: int, index: int,
+                      algorithm_name: str = 'unspecified'):
         self.meta_data = {
             'index': [index],
             'partitions': [p],
@@ -35,7 +37,6 @@ class Storage:
             'steps_max': [steps_max],
             'algorithm': [algorithm_name],
         }
-
 
     def set_makespan_genetic_history(self, history: List[int]):
         self.data['makespan_history'] = history

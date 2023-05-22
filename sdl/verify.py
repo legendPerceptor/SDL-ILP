@@ -1,5 +1,6 @@
 from itertools import groupby
 
+
 class ScheduleVerifier:
     def __init__(self, schedule, lab, jobs):
         self.schedule = schedule
