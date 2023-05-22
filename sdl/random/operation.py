@@ -18,7 +18,7 @@ def create_operation_set(filename: str = None,
         try:
             with open(filename, 'r') as f:
                 operations = f.readlines()
-            # operations = [op.strip() for op in operations]
+            # operation_pool = [op.strip() for op in operation_pool]
         except IOError as e:
             print(f'Cannot open file {filename}')
             print(e)

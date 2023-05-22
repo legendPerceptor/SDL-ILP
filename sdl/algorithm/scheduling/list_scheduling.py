@@ -1,7 +1,9 @@
+from collections import defaultdict
 from sdl.lab import Job, SDLLab, Machine, Operation
 from pulp import *
 from typing import List, Optional
 from sdl.lab import MachineSchedule
+
 
 def solve(lab: SDLLab, jobs: List[Job]):
     '''
@@ -27,11 +29,11 @@ def solve(lab: SDLLab, jobs: List[Job]):
     '''
 
     SJs = [[(-1, 0) for _ in job] for job in jobs]
-    Ms = [[] for _ in range(len(lab.machines))]
+    Ms: dict[int, list[MachineSchedule]] = defaultdict(list)  # [[] for _ in range(len(lab.machines))]
     job_step_counter = [0 for _ in range(len(jobs))]
     machine_avail_time_counter = [0 for _ in range(len(lab.machines))]
     job_next_step_avail_time = [0 for _ in range(len(jobs))]
-    job_finished = [False for _ in range(len(jobs))]
+    job_finished: dict[int, bool] = defaultdict()  # [False for _ in range(len(jobs))]
     print("OP to Machine IDS: ", lab.op_to_machine_ids)
     while True:
         finished_job_count = 0
@@ -45,7 +47,7 @@ def solve(lab: SDLLab, jobs: List[Job]):
             for machine_id in lab.op_to_machine_ids[cur_op.opcode]:
                 # machine_id starts from 1
                 if (min_start_time > machine_avail_time_counter[machine_id - 1]) or min_start_time == -1:
-                    min_start_time = max(machine_avail_time_counter[machine_id -1], job_next_step_avail_time[i])
+                    min_start_time = max(machine_avail_time_counter[machine_id - 1], job_next_step_avail_time[i])
                     on_machine = machine_id - 1
             SJs[i][job_step_counter[i]] = (on_machine, min_start_time)
             Ms[on_machine].append(MachineSchedule(i, job_step_counter[i], cur_op, min_start_time,
@@ -59,4 +61,3 @@ def solve(lab: SDLLab, jobs: List[Job]):
             break
     makespan = max(machine_avail_time_counter)
     return makespan, SJs, Ms
-        

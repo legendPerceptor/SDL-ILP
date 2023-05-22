@@ -26,6 +26,7 @@ class MachineSchedule:
     start_time: int
     end_time: int
 
+
 @dataclass(frozen=True)
 class Decision:
     job_id: int
@@ -61,10 +62,10 @@ class Job:
 
 class SDLLab:
     def __init__(
-        self, 
-        machines: List[Machine], 
-        operations: Set[Operation],
-        durations: Dict[int, int] = None
+            self,
+            machines: List[Machine],
+            operations: Set[Operation],
+            durations: Dict[int, int] = None
     ) -> None:
         self.machines = machines
         self.operations = operations
@@ -93,6 +94,13 @@ class SDLLab:
 
     def proc_time(self, opcode: OpCode) -> int:
         return self.durations[opcode]
+
+    def can_perform(self, job: Job) -> bool:
+        for op in job:
+            valid_machines = self.machines_that_can_do(op)
+            if len(valid_machines) == 0:
+                return False
+        return True
 
     @staticmethod
     def machine_can_do_operation(self, m: Machine, o: Operation) -> bool:

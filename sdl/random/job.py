@@ -1,20 +1,20 @@
-import numpy as np
-
+from numpy.random import RandomState
 from sdl.lab import Operation, Job
-from typing import List
+from typing import Iterable
 
 
-def create_job(job_id: int, job_name: str, operations: List[Operation]) -> Job:
-    return Job(job_id, job_name, operations)
-
-
-def create_job_set(operations: List[Operation], num_of_jobs: int, steps_min: int = 5, steps_max: int = 10,
-                   random_state: np.random.RandomState = None) -> List[Job]:
+def random_jobs(
+        num_of_jobs: int,
+        operation_pool: Iterable[Operation],
+        steps_min: int = 5,
+        steps_max: int = 10,
+        random_state: RandomState = None
+) -> list[Job]:
     if random_state is None:
-        random_state = np.random.RandomState()
+        random_state = RandomState()
     jobs = []
     for job_id in range(1, num_of_jobs + 1, 1):
-        n_operations = random_state.randint(steps_min, steps_max) if steps_min < steps_max else steps_min
-        cur_operations = random_state.choice(operations, n_operations, replace=True)
-        jobs.append(create_job(job_id, f'J_{job_id}', list(cur_operations)))
+        n_operations = random_state.randint(steps_min, steps_max)
+        ops = random_state.choice(operation_pool, n_operations, replace=True)
+        jobs.append(Job(job_id, f'J_{job_id}', list(ops)))
     return jobs

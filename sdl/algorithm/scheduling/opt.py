@@ -1,21 +1,28 @@
+from sdl.algorithm.scheduling.io import SchedulingDecisions
 from sdl.lab import Job, SDLLab
 from pulp import *
-from typing import List, Optional
-
-'''
-The ILP provided in this file is from the paper, "Mathematical models for job-shop scheduling problems with routing and 
-process plan flexibility" by Özgüven et al. in Applied Mathematical Modeling (2010).
-
-NOTE:
-Interestingly, the `L` value is the most sensitive part about the solver. Results change
-drastically depending on the value of `L`. If it is too big, the solver may think the problem
-is infeasible and give us "broken" schedules.
-'''
+from typing import Any, List, Optional
 
 
-def solve(lab: SDLLab, jobs: List[Job], msg: bool = False, L: Optional[int] = None, time_limit: Optional[int] = None):
-    if L is None:
-        L = 1_000_000 #int(1e18)
+def solve(
+        lab: SDLLab,
+        jobs: List[Job],
+        msg: bool = False,
+        limit: Optional[int] = None,
+        time_limit: Optional[int] = None
+) -> SchedulingDecisions:  # dict[str, Any]:
+    """
+    The ILP provided in this file is from the paper, "Mathematical models for job-shop scheduling
+    problems with routing and process plan flexibility" by Özgüven et al. in Applied Mathematical
+    Modeling (2010).
+
+    NOTE:
+    The `limit` value is the most sensitive part about the solver. Results change drastically
+    depending on the value of `limit`. If it is too big, the solver may think the problem
+    is infeasible and give us "broken" schedules.
+    """
+    if limit is None:
+        limit = 1_000_000  # int(1e18)
 
     # Initialize the ILP.
     model = LpProblem('SDL-Scheduling', LpMinimize)
@@ -39,14 +46,14 @@ def solve(lab: SDLLab, jobs: List[Job], msg: bool = False, L: Optional[int] = No
 
     # Initialize the decision variables.
     x = LpVariable.dicts('Machine-operation assignments', JOM, cat=LpBinary)
-    s = LpVariable.dicts('Starting times', JOM, cat=LpContinuous, lowBound=0, upBound=L)
-    c = LpVariable.dicts('Completion times', JOM, cat=LpContinuous, lowBound=0, upBound=L)
+    s = LpVariable.dicts('Starting times', JOM, cat=LpContinuous, lowBound=0, upBound=limit)
+    c = LpVariable.dicts('Completion times', JOM, cat=LpContinuous, lowBound=0, upBound=limit)
     y = LpVariable.dicts('Operation precedence', JOJOM, cat=LpBinary)
-    t = LpVariable.dicts('Total completion time', J, cat=LpContinuous, lowBound=0, upBound=L)
-    SP = LpVariable('Makespan', lowBound=0, upBound=None, cat=LpContinuous)
+    t = LpVariable.dicts('Total completion time', J, cat=LpContinuous, lowBound=0, upBound=limit)
+    makespan = LpVariable('Makespan', lowBound=0, upBound=None, cat=LpContinuous)
 
     # Initialize objective function.
-    model += SP
+    model += makespan
 
     # Initialize the constraints.
     # Constraint (1): Ensure Operation [jo] is assigned to only one machine.
@@ -59,16 +66,16 @@ def solve(lab: SDLLab, jobs: List[Job], msg: bool = False, L: Optional[int] = No
     for j, job in enumerate(jobs):
         for o, op in enumerate(job.ops):
             for m in lab.machines_that_can_do(op):
-                model += s[j, o, m] + c[j, o, m] <= x[j, o, m] * L
+                model += s[j, o, m] + c[j, o, m] <= x[j, o, m] * limit
 
     # Constraint (3): Ensures completion time is after start time after processing time.
     for j, job in enumerate(jobs):
         for o, op in enumerate(job.ops):
             proc = lab.proc_time(op.opcode)
             for m in lab.machines_that_can_do(op):
-                model += c[j, o, m] >= s[j, o, m] + proc - (1 - x[j, o, m]) * L
+                model += c[j, o, m] >= s[j, o, m] + proc - (1 - x[j, o, m]) * limit
 
-    # Constraints (4) and (5): Ensures that there are no overlapping operations run on
+    # Constraints (4) and (5): Ensures that there are no overlapping operation_pool run on
     #                          the same machine.
     for j1, job1 in enumerate(jobs):
         for j2, job2 in enumerate(jobs):
@@ -79,8 +86,8 @@ def solve(lab: SDLLab, jobs: List[Job], msg: bool = False, L: Optional[int] = No
                     m1_set = set(lab.machines_that_can_do(op1))
                     m2_set = set(lab.machines_that_can_do(op2))
                     for m in m1_set.intersection(m2_set):
-                        model += s[j1, o1, m] >= c[j2, o2, m] - y[j1, o1, j2, o2, m] * L
-                        model += s[j2, o2, m] >= c[j1, o1, m] - (1 - y[j1, o1, j2, o2, m]) * L
+                        model += s[j1, o1, m] >= c[j2, o2, m] - y[j1, o1, j2, o2, m] * limit
+                        model += s[j2, o2, m] >= c[j1, o1, m] - (1 - y[j1, o1, j2, o2, m]) * limit
 
     # Constraint (6): Ensures that a job's operation ends before the next operation starts.
     for j, job in enumerate(jobs):
@@ -98,7 +105,7 @@ def solve(lab: SDLLab, jobs: List[Job], msg: bool = False, L: Optional[int] = No
 
     # Constraint (8): Ensures makespan is larger than all total completion times.
     for j in range(len(jobs)):
-        model += SP >= t[j]
+        model += makespan >= t[j]
 
     # Solve the problem, convert the decision variables into dicts, and return.
     solver = PULP_CBC_CMD(msg=msg, timeLimit=time_limit)
@@ -110,4 +117,12 @@ def solve(lab: SDLLab, jobs: List[Job], msg: bool = False, L: Optional[int] = No
     y = {key: y[key].value() for key in y}
     t = {key: t[key].value() for key in t}
 
-    return dict(makespan=SP.value(), x=x, s=s, c=c, y=y, t=t)
+    # return dict(makespan=SP.value(), x=x, s=s, c=c, y=y, t=t)
+    return SchedulingDecisions(
+        makespan=makespan.value(),
+        machine_operations=x,
+        starting_times=s,
+        completion_times=c,
+        operation_prec=y,
+        total_time=t
+    )

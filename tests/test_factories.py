@@ -1,9 +1,10 @@
 import unittest
 from sdl.lab import Operation, Job, Machine, SDLLab
 # from numpy.random import RandomState
-from sdl.algorithm import list_scheduling as greedy
+from sdl.algorithm.scheduling import list_scheduling as greedy
 from sdl.algorithm import opt_2010 as ilp
 from sdl.plot import renderSchedule, renderILPSchedule, plotAll
+
 
 class FactoryTestCase(unittest.TestCase):
     def test_random_sdl_init(self):
@@ -36,6 +37,7 @@ class FactoryTestCase(unittest.TestCase):
         plotAll(greedy_schedule, machines, jobs, durations, greedy_makespan, 'greedy_small_case.png')
         plotAll(ilp_schedule, machines, jobs, durations, ilp_makespan, 'ilp_small_case.png')
         self.assertLess(ilp_makespan, greedy_makespan)
+
 
 if __name__ == '__main__':
     unittest.main()

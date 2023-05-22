@@ -4,6 +4,12 @@ from dataclasses import dataclass, field
 import numpy as np
 
 
+@dataclass(frozen=True)
+class Chromosome:
+    machine_selection: List[int]
+    operation_sequence: List[int]
+
+
 def find_starting_time(slots: List[MachineSchedule], duration, minimum):
     """Find the starting time for a job on a machine."""
     if len(slots) == 0:
@@ -65,12 +71,6 @@ def schedule_from_chromosome(machine_selection, operation_sequence, lab: SDLLab,
     return makespan, SJs, Ms
 
 
-@dataclass(frozen=True)
-class Chromosome:
-    machine_selection: List[int]
-    operation_sequence: List[int]
-
-
 class Individual:
     def __init__(self, chromosome: Chromosome, lab: SDLLab, jobs: List[Job]):
         self.chromosome = chromosome
@@ -106,7 +106,8 @@ class Individual:
                 count += len(job.ops)
                 continue
             else:
-                # print(f"index: {index}, count: {count}, len(job.ops): {len(job.ops)}, L:{len(self.chromosome.machine_selection)}")
+                # print(f"index: {index}, count: {count},
+                # len(job.ops): {len(job.ops)}, limit:{len(self.chromosome.machine_selection)}")
                 step = job.ops[index - count]
                 self.chromosome.machine_selection[index] = random_state.choice(
                     list(self.lab.op_to_machine_ids[step.opcode]))
@@ -175,19 +176,23 @@ class Individual:
         """Mate with another individual."""
         machine_selection1, machine_selection2 = self.ms_uniform_crossover(self, other, random_state)
         operation_sequence1, operation_sequence2 = self.os_uniform_crossover(self, other, random_state)
-        return Individual(Chromosome(machine_selection1, operation_sequence1), self.lab, self.jobs), \
+        return (
+            Individual(Chromosome(machine_selection1, operation_sequence1), self.lab, self.jobs),
             Individual(Chromosome(machine_selection2, operation_sequence2), self.lab, self.jobs)
+        )
 
 
-def genetic_solve(lab: SDLLab, jobs: List[Job], random_state: np.random.RandomState,
-                  initial_population: List[Individual] = None, population_size: int = 100,
-                  max_generations: int = 1000, mutation_rate: float = 0.1, crossover_rate: float = 0.9):
+def genetic_solve(
+        lab: SDLLab, jobs: List[Job], random_state: np.random.RandomState,
+        initial_population: List[Individual] = None, population_size: int = 100,
+        max_generations: int = 1000, mutation_rate: float = 0.1, crossover_rate: float = 0.9
+):
     """Solve the problem using genetic algorithm."""
     if initial_population is None:
         population = [Individual.create_random_chromosome(lab, jobs, random_state) for _ in range(population_size)]
     else:
         random_populations = [Individual.create_random_chromosome(lab, jobs, random_state)
-                                                for _ in range(population_size - len(initial_population))]
+                              for _ in range(population_size - len(initial_population))]
         initial_population.extend(random_populations)
         population = initial_population
     best_individual = min(population, key=lambda x: x.fitness)
