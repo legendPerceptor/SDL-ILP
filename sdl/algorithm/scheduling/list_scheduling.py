@@ -29,11 +29,11 @@ def solve(lab: SDLLab, jobs: List[Job]):
     '''
 
     SJs = [[(-1, 0) for _ in job] for job in jobs]
-    Ms: dict[int, list[MachineSchedule]] = defaultdict(list)  # [[] for _ in range(len(lab.machines))]
+    Ms = [[] for _ in range(len(lab.machines))]
     job_step_counter = [0 for _ in range(len(jobs))]
     machine_avail_time_counter = [0 for _ in range(len(lab.machines))]
     job_next_step_avail_time = [0 for _ in range(len(jobs))]
-    job_finished: dict[int, bool] = defaultdict()  # [False for _ in range(len(jobs))]
+    job_finished = [False for _ in range(len(jobs))]
     print("OP to Machine IDS: ", lab.op_to_machine_ids)
     while True:
         finished_job_count = 0

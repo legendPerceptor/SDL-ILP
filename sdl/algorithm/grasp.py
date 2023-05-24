@@ -2,7 +2,7 @@ import networkx as nx
 
 from sdl.lab import Job, SDLLab, MachineSchedule
 from typing import List
-from sdl.algorithm.genetic import find_starting_time
+from sdl.algorithm.scheduling.genetic import find_starting_time
 
 from numpy import random
 from matplotlib import pyplot as plt

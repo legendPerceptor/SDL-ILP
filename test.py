@@ -295,6 +295,7 @@ def load_test_storage_performance(greedy_file_template, genetic_file_template):
         ax.plot(xx, store.data['makespan_history'], label=f'complexity-{i + 1}')
     ax.set_xlabel('Generations')
     ax.set_ylabel('Makespan')
+    ax.set_title("Genetic with Random Initialization")
     ax.legend(loc='upper center', ncol=2)
     plt.tight_layout()
     plt.savefig('figures/genetic_makespan_history-org.png', dpi=300)
@@ -319,14 +320,14 @@ if __name__ == '__main__':
     #     for res in p.imap_unordered(load_test_storage_performance, jobs):
 
     # test_storage_plot_performance(greedy_main, filename=greedy_filename, csv_file=greedy_csv_file)
-    for n_trial in range(4):
-        greedy_csv_file = Path(f'data/greedy/greedy_sensitivity-apr19-{n_trial}.csv')
-        test_sensitivity(greedy_main, filename=greedy_filename, csv_file=greedy_csv_file)
+    # for n_trial in range(4):
+    #     greedy_csv_file = Path(f'data/greedy/greedy_sensitivity-apr19-{n_trial}.csv')
+    #     test_sensitivity(greedy_main, filename=greedy_filename, csv_file=greedy_csv_file)
 
     # test_storage_plot_performance(genetic_main, filename=optimized_genetic_filename,
     #                               csv_file=optimized_genetic_csv_file)
-    # load_test_storage_performance(greedy_file_template=greedy_filename,
-    #                               genetic_file_template=unoptimized_genetic_filename)
+    load_test_storage_performance(greedy_file_template=greedy_filename,
+                                  genetic_file_template=unoptimized_genetic_filename)
 
     # test_sdl_factory(filename=filename)
     # test_load_from_file("data/greedy_schedule123.pkl")

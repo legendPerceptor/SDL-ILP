@@ -123,9 +123,9 @@ def renderSchedule(ms):
     return schedule
 
 def renderILPSchedule(out, lab, jobs):
-    x = out['x']  # machine-operation assignments
-    s = out['s']  # starting times
-    c = out['c']  # completion times
+    x = out.machine_operations  # machine-operation assignments
+    s = out.starting_times  # starting times
+    c = out.completion_times  # completion times
     opt_schedule = []
     for j, job in enumerate(jobs):
         for o, op in enumerate(job.ops):

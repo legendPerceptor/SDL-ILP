@@ -40,7 +40,7 @@ class FactoryTestCase(unittest.TestCase):
         greedy_makespan, greedy_sjs, greedy_ms = greedy.solve(lab, jobs)
         greedy_schedule = renderSchedule(greedy_ms)
         out = ilp.solve(lab, jobs, msg=True, time_limit=50)
-        ilp_makespan = out['makespan']
+        ilp_makespan = out.makespan
         ilp_schedule = renderILPSchedule(out, lab, jobs)
         plotAll(greedy_schedule, machines, jobs, durations, greedy_makespan, 'greedy_small_case.png')
         plotAll(ilp_schedule, machines, jobs, durations, ilp_makespan, 'ilp_small_case.png')
