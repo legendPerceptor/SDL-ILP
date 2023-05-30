@@ -1,11 +1,11 @@
 from pulp import *
 from sdl.algorithm.scheduling.io import SchedulingDecisions
 from sdl.lab import Job, SDLLab
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 
 def single_site_makespan(
-        scheduler: Callable[[SDLLab, list[Job]], SchedulingDecisions],
+        scheduler: Callable[[SDLLab, list[Job]], Tuple],
         site_id: int,
         site: SDLLab,
         jobs: list[Job],
@@ -17,13 +17,13 @@ def single_site_makespan(
         for j, job in enumerate(jobs)
         if partition_decisions[i, j].value() == 1
     ]
-    return scheduler(site, site_jobs).makespan
+    return scheduler(site, site_jobs)[0]  # TODO: Make the Tuple to be SchedulingDecisions
 
 
 def opt_partition(
         sites: list[SDLLab],
         jobs: list[Job],
-        scheduler: Callable[[SDLLab, list[Job]], SchedulingDecisions],
+        scheduler: Callable[[SDLLab, list[Job]], Tuple],
         msg: bool = False,
         limit: Optional[int] = None,
         time_limit: Optional[int] = None
@@ -54,8 +54,8 @@ def opt_partition(
             model += z[i, e] <= int(site.can_perform(exp))
 
     # Constraint (4): Ensures each SDL site has enough exhaustible materials to run each experiment assigned to it.
-    for i, site in enumerate(sites):
-        pass  # TODO
+    # for i, site in enumerate(sites):
+    #     pass  # TODO
 
     return (
         makespan.value(),

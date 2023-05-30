@@ -9,6 +9,7 @@ from numpy.random import RandomState
 from sdl.algorithm.scheduling import opt as ilp
 from sdl.algorithm.grasp import Grasp
 from sdl.plot import renderSchedule, renderILPSchedule, plotAll
+from sdl.algorithm.partition.opt import opt_partition
 
 def smallSDLInPaper():
     operations = [Operation(1, 'A', 5), Operation(2, 'B', 4), Operation(3, 'C', 8), Operation(4, 'D', 7)]
@@ -18,11 +19,22 @@ def smallSDLInPaper():
     jobs = [Job(1, 'J1', [operations[0], operations[1], operations[2]]),
             Job(2, 'J2', [operations[0], operations[1], operations[3]]),
             Job(3, 'J3', [operations[1], operations[2]])]
-    operations_to_machines = {op.opcode: set() for op in operations}
-    operations_to_machines[operations[0].opcode] = {1, 2, 3}
-    operations_to_machines[operations[1].opcode] = {1, 2}
-    operations_to_machines[operations[2].opcode] = {1, 2, 3}
-    operations_to_machines[operations[3].opcode] = {1, 2, 3}
+    durations = {
+        op.opcode: op.duration for op in operations
+    }
+    # random_state = RandomState(42)
+    lab = SDLLab(machines, operation_set, durations)
+    return lab, jobs, machines, durations, operations
+
+def smallSDLForPartition():
+    operations = [Operation(1, 'A', 5), Operation(2, 'B', 4), Operation(3, 'C', 8), Operation(4, 'D', 7),
+                  Operation(5, 'E', 6), Operation(6, 'F', 14)]
+    operation_set = set(operations)
+    machines = [Machine(1, 'M1', {operations[1], operations[0]}), Machine(2, 'M2', operation_set),
+                Machine(3, 'M3', {operations[0], operations[2], operations[3]}),
+                Machine(4, 'M4', {operations[4], operations[5]})]
+    jobs = [Job(4, 'J4', [operations[4], operations[5], operations[2]]),
+            Job(5, 'J5', [operations[0], operations[1], operations[4]])]
     durations = {
         op.opcode: op.duration for op in operations
     }
@@ -53,6 +65,15 @@ class FactoryTestCase(unittest.TestCase):
         grasp_schedule = renderSchedule(grasp_ms)
         plotAll(grasp_schedule, machines, jobs, durations, grasp_makespan, 'grasp_small_case.png')
         grasp.buildGraph()
+
+    def test_partition_basic(self):
+        lab, jobs, machines, durations, operations = smallSDLInPaper()
+        lab2, jobs2, machines2, durations2, operations2 = smallSDLForPartition()
+        all_jobs = jobs + jobs2
+        labs = [lab, lab2]
+        scheduler = greedy.solve
+        partition_result = opt_partition(labs, all_jobs, scheduler)
+        print(partition_result)
 
 
 if __name__ == '__main__':
