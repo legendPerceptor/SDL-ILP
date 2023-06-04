@@ -117,6 +117,11 @@ def solve(
     y = {key: y[key].value() for key in y}
     t = {key: t[key].value() for key in t}
 
+    print("x:", x)
+    print("s:", s)
+    print("c:", c)
+    print("y:", y)
+    print("t:", t)
     # return dict(makespan=SP.value(), x=x, s=s, c=c, y=y, t=t)
     return SchedulingDecisions(
         makespan=makespan.value(),

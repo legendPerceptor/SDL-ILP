@@ -61,12 +61,12 @@ class SDLPlot:
                     (i - 0.5, 1.0),
                     alpha=0.25,
                     edgecolors='black',
-                    facecolors=self.colors[i]
+                    facecolors=self.colors[job.idx]
                 )
                 ax.text(
                     start_time + self.op_durations[op.opcode] / 2,
                     i,
-                    f'{i}-{j}: {op.name}',
+                    f'{job.idx}-{j}: {op.name}',
                     fontsize=10,
                     ha='center',
                     va='center'
@@ -81,14 +81,14 @@ class SDLPlot:
         for i, decision in enumerate(schedule):
             ax.broken_barh(
                 [(decision.starting_time, decision.duration)],
-                (decision.machine_id - 0.5, 1.0),
+                (decision.machine_id - 1 - 0.5, 1.0),
                 alpha=0.25,
                 edgecolors='black',
                 facecolors=self.colors[decision.job_id]
             )
             ax.text(
                 decision.starting_time + decision.duration / 2,
-                decision.machine_id,
+                decision.machine_id - 1,
                 f'{decision.job_id}: {decision.operation.name}',
                 fontsize=10,
                 ha='center',
@@ -105,11 +105,10 @@ class SDLPlot:
 
 def renderSchedule(ms):
     schedule = []
-    for i, M_d in enumerate(ms):
+    for machine_id, M_d in ms.items():
         for decision in M_d:
             # job_id, job_step, op, start_time, end_time = decision
             run_time = decision.operation.duration
-            machine_id = i
             schedule.append(
                 Decision(
                     job_id=decision.job_id,
@@ -132,9 +131,9 @@ def renderILPSchedule(out, lab, jobs):
             for m in lab.machines_that_can_do(op):
                 if x[j, o, m] == 1:
                     opt_schedule.append(Decision(
-                        job_id=j,
+                        job_id=j+1, # TODO: the current ILP is based on index, will not work for multi-site partition
                         operation=op,
-                        machine_id=m - 1,  # for plotting, the machine id is actually the real id - 1
+                        machine_id=m,
                         starting_time=s[j, o, m],
                         completion_time=c[j, o, m],
                         duration=c[j, o, m] - s[j, o, m]

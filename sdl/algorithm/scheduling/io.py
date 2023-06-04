@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-
+from sdl.lab import MachineSchedule
 
 @dataclass(frozen=True)
 class SchedulingDecisions:
@@ -9,3 +9,9 @@ class SchedulingDecisions:
     completion_times: dict[tuple[int, ...], int]
     operation_prec: dict[tuple[int, ...], int]
     total_time: dict[int, int]
+
+@dataclass(frozen=True)
+class ScheduleResult:
+    makespan: int
+    machine_schedules: dict[int, list[MachineSchedule]]
+    job_schedules: dict[int, list[tuple[int, int]]]

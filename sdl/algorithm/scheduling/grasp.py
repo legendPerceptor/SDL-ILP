@@ -24,6 +24,7 @@ class Grasp:
 
     def construct(self):
         """The construction phase of the disjuctive graph"""
+        # TODO: modify this function to avoid using the indexes as job id etc.
         lab = self.sdl_lab
         jobs = self.jobs
         machines = lab.machines
@@ -81,7 +82,8 @@ class Grasp:
         makespan = max(job_next_step_avail_time)
         self.Ms = Ms
         self.SJs = SJs
-        return makespan, SJs, Ms
+        ms_dict = {i: m for i, m in enumerate(Ms)}
+        return makespan, SJs, ms_dict
 
     def buildGraph(self):
         if self.Ms is None or self.SJs is None:
