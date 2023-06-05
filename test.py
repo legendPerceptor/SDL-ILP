@@ -3,7 +3,10 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as random
+import pandas as pd
+
 import sdl.algorithm.scheduling.opt as ilp
+# import sdl.algorithm.scheduling.grasp as greedy
 import sdl.algorithm.scheduling.simple_greedy as greedy
 from sdl.algorithm.scheduling import dummy_heuristic
 
@@ -333,20 +336,17 @@ def load_test_storage_performance(greedy_file_template, genetic_file_template):
     plt.show()
 
 
-def compare_two_algorithm(alg1_file_template, alg2_file_template, alg1_name, alg2_name):
-    alg1_stores = []
-    alg2_stores = []
-    for i in range(10):
-        alg1_store = load_schedule_from_file(alg1_file_template.format(index=i))
-        alg1_stores.append(alg1_store)
-        alg2_store = load_schedule_from_file(alg2_file_template.format(index=i))
-        alg2_stores.append(alg2_store)
-    alg1_makespans = [store.data['makespan'] for store in alg1_stores]
-    alg2_makespans = [store.data['makespan'] for store in alg2_stores]
-    alg1_runtimes = [store.data['runtime'] for store in alg1_stores]
-    alg2_runtimes = [store.data['runtime'] for store in alg2_stores]
-    print(f"{alg1_name} runtimes: {alg1_runtimes}")
-    print(f"{alg2_name} runtimes: {alg2_runtimes}")
+def compare_two_algorithm(alg1_csv_file, alg2_csv_file):
+    df1 = pd.read_csv(alg1_csv_file)
+    df2 = pd.read_csv(alg2_csv_file)
+    alg1_makespans = df1['makespan'].values
+    alg2_makespans = df2['makespan'].values
+    alg1_runtimes = df1['runtime'].values
+    alg2_runtimes = df2['runtime'].values
+    print("alg1_runtimes:", alg1_runtimes)
+    print("alg1_makespans:", alg1_makespans)
+    alg1_name = df1['algorithm'].values[0]
+    alg2_name = df2['algorithm'].values[0]
     fig, axes = plt.subplots(1, 2)
     xx = np.arange(1, 11)
     ax = axes[0]
@@ -354,12 +354,14 @@ def compare_two_algorithm(alg1_file_template, alg2_file_template, alg1_name, alg
     ax.plot(xx, alg2_makespans, label=alg2_name, linestyle='-', color='blue')
     ax.set_xlabel('Complexity')
     ax.set_ylabel('Makespan')
+    ax.set_yscale('log')
     ax.legend()
     ax = axes[1]
     ax.plot(xx, alg1_runtimes, label=alg1_name, linestyle='--', color='red')
     ax.plot(xx, alg2_runtimes, label=alg2_name, linestyle='-', color='blue')
     ax.set_xlabel('Complexity')
     ax.set_ylabel('Runtime (s)')
+    ax.set_yscale('log')
     ax.legend()
     plt.tight_layout()
     plt.savefig(f'figures/compare_{alg1_name}_{alg2_name}_makespan.png', dpi=300)
@@ -370,6 +372,7 @@ if __name__ == '__main__':
     optimized_genetic_filename = 'data/optimized-genetic/genetic_makespan-{index}.pkl'
     optimized_genetic_csv_file = 'data/optimized-genetic/genetic_makespan.csv'
     greedy_filename = 'data/greedy/greedy_makespan-{index}.pkl'
+    greedy_csv_file = 'data/greedy/greedy_makespan.csv'
 
     unoptimized_genetic_filename = 'data/genetic_makespan-{index}.pkl'
     dummy_heuristic_filename = 'data/dummy_heuristic/dummy_heuristic_makespan-{index}.pkl'
@@ -385,11 +388,9 @@ if __name__ == '__main__':
     # load_test_storage_performance(greedy_file_template=greedy_filename,
     #                               genetic_file_template=unoptimized_genetic_filename)
 
+    test_storage_plot_performance(greedy_main, filename=greedy_filename,
+                                  csv_file=greedy_csv_file)
     test_storage_plot_performance(dummy_heuristic_main, filename=dummy_heuristic_filename,
                                   csv_file=dummy_heuristic_csv_file)
-    test_storage_plot_performance(greedy_main, filename=dummy_heuristic_filename,
-                                  csv_file=dummy_heuristic_csv_file)
-    compare_two_algorithm(alg1_file_template=greedy_filename,
-                            alg2_file_template=dummy_heuristic_filename,
-                            alg1_name="simple-greedy", alg2_name="dummy-heuristic")
+    compare_two_algorithm(alg1_csv_file=greedy_csv_file, alg2_csv_file=dummy_heuristic_csv_file)
 

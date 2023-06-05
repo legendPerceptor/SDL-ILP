@@ -62,7 +62,8 @@ class FactoryTestCase(unittest.TestCase):
         lab, jobs, machines, durations, operations = smallSDLInPaper()
         rs = RandomState(47)
         grasp = Grasp(sdl_lab=lab, jobs=jobs, rs=rs)
-        grasp_makespan, grasp_sjs, grasp_ms = grasp.construct()
+        result = grasp.construct()
+        grasp_makespan, grasp_sjs, grasp_ms = result.makespan, result.job_schedules, result.machine_schedules
         grasp_schedule = renderSchedule(grasp_ms)
         plotAll(grasp_schedule, machines, jobs, durations, grasp_makespan, 'grasp_small_case.png')
         grasp.buildGraph()
