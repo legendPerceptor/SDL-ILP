@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as random
 import sdl.algorithm.scheduling.opt as ilp
-import sdl.algorithm.scheduling.list_scheduling as greedy
+import sdl.algorithm.scheduling.simple_greedy as greedy
+from sdl.algorithm.scheduling import dummy_heuristic
 
 from pathlib import Path
 from sdl.algorithm.scheduling.genetic import Chromosome, Individual, genetic_solve
@@ -85,15 +86,16 @@ def ilp_main(
 
 
 def build_greedy_individual(lab, jobs):
-    makespan, sjs, ms = greedy.solve(lab, jobs)
+    greedy_result = greedy.solve(lab, jobs)
+    makespan, sjs, ms = greedy_result.makespan, greedy_result.job_schedules, greedy_result.machine_schedules
     # greedy_schedule = renderSchedule(ms)
     flattened_schedule = []
     machine_selection = []
     operation_sequence = []
-    for job_id_1, job_decision in enumerate(sjs):
+    for job_id, job_decision in sjs.items():
         for step in job_decision:
-            flattened_schedule.append((job_id_1 + 1, step[0] + 1, step[1]))
-            # step[0] is machine id - 1, step[1] is start time
+            flattened_schedule.append((job_id, step[0] , step[1]))
+            # step[0] is machine id, step[1] is start time
 
     flattened_copy = flattened_schedule.copy()
     # print("flattened copy:", flattened_copy)
@@ -154,8 +156,9 @@ def greedy_main(
 ):
     lab = SDLLab(machines, set(operations), op_durations)
     start = perf_counter()
-    makespan, sjs, ms = greedy.solve(lab, jobs)
+    result = greedy.solve(lab, jobs)
     end = perf_counter()
+    makespan, sjs, ms = result.makespan, result.job_schedules, result.machine_schedules
     logging.info(f'The greedily-found makespan: {makespan}.')
     logging.info(f'Time taken (in seconds) to solve the greedy schedule: {end - start}.')
     greedy_schedule = renderSchedule(ms)
@@ -171,6 +174,34 @@ def greedy_main(
         storage.set_data(lab, jobs, greedy_schedule, makespan, end - start)
         storage.save()
 
+
+def dummy_heuristic_main(
+        machines: List[Machine],
+        operations: List[Operation],
+        op_durations: Dict[OpCode, int],
+        jobs: List[Job],
+        random_state: random.RandomState,
+        storage: Storage = None,
+):
+    lab = SDLLab(machines, set(operations), op_durations)
+    start = perf_counter()
+    result = dummy_heuristic.solve(lab, jobs)
+    end = perf_counter()
+    makespan, sjs, ms = result.makespan, result.job_schedules, result.machine_schedules
+    logging.info(f'The dummy heuristic-found makespan: {makespan}.')
+    logging.info(f'Time taken (in seconds) to solve the greedy schedule: {end - start}.')
+    dummy_heuristic_schedule = renderSchedule(ms)
+    # schedule_verifier = ScheduleVerifier(greedy_schedule, lab, jobs)
+    # if schedule_verifier.verify_all():
+    #     logging.info('The schedule provided by Greedy Algorithm is valid.')
+    # else:
+    #     logging.error('The schedule provided by Greedy Algorithm is NOT valid.')
+    #     exit(1)
+    # Plot the solver's decisions in MPL.
+    # plotAll(greedy_schedule, machines, jobs, op_durations, makespan, 'greedy-schedule.png')
+    if storage is not None:
+        storage.set_data(lab, jobs, dummy_heuristic_schedule, makespan, end - start)
+        storage.save()
 
 def load_schedule_from_file(filename):
     storage = Storage(filename)
@@ -221,7 +252,7 @@ def test_storage_plot_performance(fn, filename, csv_file):
             op.opcode: op.duration for op in operations
         }
         storage = Storage(filename=filename.format(index=i), csv_file=csv_file)
-        storage.set_meta_data(p, m, n, o, steps_min, steps_max, algorithm_name=fn.__name__)
+        storage.set_meta_data(p, m, n, o, steps_min, steps_max, i, algorithm_name=fn.__name__)
         # greedy_main(machines, operation_pool, durations, jobs, filename=f'data/greedy_schedule_makespan-{i}.pkl')
         # genetic_main(machines, operation_pool, durations, jobs, random_state, filename=f'data/genetic_makespan-{i}.pkl')
         fn(machines, operations, durations, jobs, random_state, storage)
@@ -302,6 +333,38 @@ def load_test_storage_performance(greedy_file_template, genetic_file_template):
     plt.show()
 
 
+def compare_two_algorithm(alg1_file_template, alg2_file_template, alg1_name, alg2_name):
+    alg1_stores = []
+    alg2_stores = []
+    for i in range(10):
+        alg1_store = load_schedule_from_file(alg1_file_template.format(index=i))
+        alg1_stores.append(alg1_store)
+        alg2_store = load_schedule_from_file(alg2_file_template.format(index=i))
+        alg2_stores.append(alg2_store)
+    alg1_makespans = [store.data['makespan'] for store in alg1_stores]
+    alg2_makespans = [store.data['makespan'] for store in alg2_stores]
+    alg1_runtimes = [store.data['runtime'] for store in alg1_stores]
+    alg2_runtimes = [store.data['runtime'] for store in alg2_stores]
+    print(f"{alg1_name} runtimes: {alg1_runtimes}")
+    print(f"{alg2_name} runtimes: {alg2_runtimes}")
+    fig, axes = plt.subplots(1, 2)
+    xx = np.arange(1, 11)
+    ax = axes[0]
+    ax.plot(xx, alg1_makespans, label=alg1_name, linestyle='--', color='red')
+    ax.plot(xx, alg2_makespans, label=alg2_name, linestyle='-', color='blue')
+    ax.set_xlabel('Complexity')
+    ax.set_ylabel('Makespan')
+    ax.legend()
+    ax = axes[1]
+    ax.plot(xx, alg1_runtimes, label=alg1_name, linestyle='--', color='red')
+    ax.plot(xx, alg2_runtimes, label=alg2_name, linestyle='-', color='blue')
+    ax.set_xlabel('Complexity')
+    ax.set_ylabel('Runtime (s)')
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(f'figures/compare_{alg1_name}_{alg2_name}_makespan.png', dpi=300)
+    plt.show()
+
 if __name__ == '__main__':
     # filename = 'sdl/operation_pool.txt'
     optimized_genetic_filename = 'data/optimized-genetic/genetic_makespan-{index}.pkl'
@@ -309,15 +372,8 @@ if __name__ == '__main__':
     greedy_filename = 'data/greedy/greedy_makespan-{index}.pkl'
 
     unoptimized_genetic_filename = 'data/genetic_makespan-{index}.pkl'
-    # jobs = []
-    # for ...:
-    #     jobs.append((params))
-    #
-    # for fn in [greedy_main, genetic_main]:
-    #     load_test_storage_performance(fn)
-    #
-    # with multiprocessing.Pool() as p:
-    #     for res in p.imap_unordered(load_test_storage_performance, jobs):
+    dummy_heuristic_filename = 'data/dummy_heuristic/dummy_heuristic_makespan-{index}.pkl'
+    dummy_heuristic_csv_file = 'data/dummy_heuristic/dummy_heuristic.csv'
 
     # test_storage_plot_performance(greedy_main, filename=greedy_filename, csv_file=greedy_csv_file)
     # for n_trial in range(4):
@@ -326,9 +382,14 @@ if __name__ == '__main__':
 
     # test_storage_plot_performance(genetic_main, filename=optimized_genetic_filename,
     #                               csv_file=optimized_genetic_csv_file)
-    load_test_storage_performance(greedy_file_template=greedy_filename,
-                                  genetic_file_template=unoptimized_genetic_filename)
+    # load_test_storage_performance(greedy_file_template=greedy_filename,
+    #                               genetic_file_template=unoptimized_genetic_filename)
 
-    # test_sdl_factory(filename=filename)
-    # test_load_from_file("data/greedy_schedule123.pkl")
-    # test_sdl_factory_ilp(filename=filename)
+    test_storage_plot_performance(dummy_heuristic_main, filename=dummy_heuristic_filename,
+                                  csv_file=dummy_heuristic_csv_file)
+    test_storage_plot_performance(greedy_main, filename=dummy_heuristic_filename,
+                                  csv_file=dummy_heuristic_csv_file)
+    compare_two_algorithm(alg1_file_template=greedy_filename,
+                            alg2_file_template=dummy_heuristic_filename,
+                            alg1_name="simple-greedy", alg2_name="dummy-heuristic")
+

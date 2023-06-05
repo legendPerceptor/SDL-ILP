@@ -3,6 +3,7 @@ from sdl.lab import Operation, Job, Machine, SDLLab
 
 # from numpy.random import RandomState
 from sdl.algorithm.scheduling import simple_greedy as greedy
+from sdl.algorithm.scheduling import dummy_heuristic
 
 from numpy.random import RandomState
 
@@ -65,6 +66,13 @@ class FactoryTestCase(unittest.TestCase):
         grasp_schedule = renderSchedule(grasp_ms)
         plotAll(grasp_schedule, machines, jobs, durations, grasp_makespan, 'grasp_small_case.png')
         grasp.buildGraph()
+
+    def test_dummy_heuristics(self):
+        lab, jobs, machines, durations, operations = smallSDLInPaper()
+        result = dummy_heuristic.solve(lab, jobs)
+        grasp_schedule = renderSchedule(result.machine_schedules)
+        plotAll(grasp_schedule, machines, jobs, durations, result.makespan, 'dummy_heuristic_small_case.png')
+
 
     def test_partition_basic(self):
         # lab, jobs, machines, durations, operations = smallSDLInPaper()

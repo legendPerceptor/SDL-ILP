@@ -6,7 +6,7 @@ from sdl.lab import MachineSchedule
 from sdl.algorithm.scheduling.io import SchedulingDecisions, ScheduleResult
 
 def solve(lab: SDLLab, jobs: List[Job]):
-    '''
+    """
     For intance, we have the following jobs and machines:
     jobs = [J1, J2, J3, J4]
     J1 = [O1, O2, O3]
@@ -26,7 +26,7 @@ def solve(lab: SDLLab, jobs: List[Job]):
     SJ[job4.idx] = [(M2, t11),(M2, t12),(M2, t13)]
     Ms[m1.idx] = [(J1, O1, t1),(J2, O2, t2), ...]
     Ms[m2.idx] = [(J4, O8, t8),(J3, O9, t9), ...]
-    '''
+    """
 
     SJs = {job.idx: [(-1, 0) for _ in job] for job in jobs}
     Ms = {machine.idx: [] for machine in lab.machines}
