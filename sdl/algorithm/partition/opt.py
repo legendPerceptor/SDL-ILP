@@ -1,11 +1,11 @@
 from pulp import *
-from sdl.algorithm.scheduling.io import SchedulingDecisions
+from sdl.algorithm.scheduling.io import SchedulingDecisions, ScheduleResult
 from sdl.lab import Job, SDLLab
 from typing import Callable, Optional, Tuple
 
 
 def single_site_makespan(
-        scheduler: Callable[[SDLLab, list[Job]], Tuple],
+        scheduler: Callable[[SDLLab, list[Job]], ScheduleResult],
         site_id: int,
         site: SDLLab,
         jobs: list[Job],
@@ -17,13 +17,13 @@ def single_site_makespan(
         for j, job in enumerate(jobs)
         if partition_decisions[i, j].value() == 1
     ]
-    return scheduler(site, site_jobs)[0]  # TODO: Make the Tuple to be SchedulingDecisions
+    return scheduler(site, site_jobs).makespan  # TODO: Make the Tuple to be SchedulingDecisions
 
 
 def opt_partition(
         sites: list[SDLLab],
         jobs: list[Job],
-        scheduler: Callable[[SDLLab, list[Job]], Tuple],
+        scheduler: Callable[[SDLLab, list[Job]], ScheduleResult],
         msg: bool = False,
         limit: Optional[int] = None,
         time_limit: Optional[int] = None

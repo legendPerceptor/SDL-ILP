@@ -6,7 +6,7 @@ import numpy.random as random
 import pandas as pd
 
 import sdl.algorithm.scheduling.opt as ilp
-# import sdl.algorithm.scheduling.grasp as greedy
+import sdl.algorithm.scheduling.grasp as grasp
 import sdl.algorithm.scheduling.simple_greedy as greedy
 from sdl.algorithm.scheduling import dummy_heuristic
 
@@ -54,7 +54,7 @@ def ilp_main(
     out = ilp.solve(lab, jobs, msg=msg, time_limit=50)
     end = perf_counter()
 
-    makespan = out['makespan']
+    makespan = out.makespan
     # x = out['x']  # machine-operation assignments
     # s = out['s']  # starting times
     # c = out['c']  # completion times
@@ -173,6 +173,24 @@ def greedy_main(
     #     exit(1)
     # Plot the solver's decisions in MPL.
     # plotAll(greedy_schedule, machines, jobs, op_durations, makespan, 'greedy-schedule.png')
+    if storage is not None:
+        storage.set_data(lab, jobs, greedy_schedule, makespan, end - start)
+        storage.save()
+
+def grasp_main(
+        machines: List[Machine],
+        operations: List[Operation],
+        op_durations: Dict[OpCode, int],
+        jobs: List[Job],
+        random_state: random.RandomState,
+        storage: Storage = None,
+):
+    lab = SDLLab(machines, set(operations), op_durations)
+    start = perf_counter()
+    result = grasp.solve(lab, jobs)
+    end = perf_counter()
+    makespan, sjs, ms = result.makespan, result.job_schedules, result.machine_schedules
+    greedy_schedule = renderSchedule(ms)
     if storage is not None:
         storage.set_data(lab, jobs, greedy_schedule, makespan, end - start)
         storage.save()
@@ -374,6 +392,10 @@ if __name__ == '__main__':
     greedy_filename = 'data/greedy/greedy_makespan-{index}.pkl'
     greedy_csv_file = 'data/greedy/greedy_makespan.csv'
 
+    grasp_filename = 'data/grasp/grasp_makespan-{index}.pkl'
+    grasp_csv_file = 'data/grasp/grasp_makespan.csv'
+
+
     unoptimized_genetic_filename = 'data/genetic_makespan-{index}.pkl'
     dummy_heuristic_filename = 'data/dummy_heuristic/dummy_heuristic_makespan-{index}.pkl'
     dummy_heuristic_csv_file = 'data/dummy_heuristic/dummy_heuristic.csv'
@@ -388,9 +410,10 @@ if __name__ == '__main__':
     # load_test_storage_performance(greedy_file_template=greedy_filename,
     #                               genetic_file_template=unoptimized_genetic_filename)
 
-    test_storage_plot_performance(greedy_main, filename=greedy_filename,
-                                  csv_file=greedy_csv_file)
-    test_storage_plot_performance(dummy_heuristic_main, filename=dummy_heuristic_filename,
-                                  csv_file=dummy_heuristic_csv_file)
-    compare_two_algorithm(alg1_csv_file=greedy_csv_file, alg2_csv_file=dummy_heuristic_csv_file)
+    # test_storage_plot_performance(greedy_main, filename=greedy_filename,
+    #                               csv_file=greedy_csv_file)
+    # test_storage_plot_performance(dummy_heuristic_main, filename=dummy_heuristic_filename,
+    #                               csv_file=dummy_heuristic_csv_file)
+    test_storage_plot_performance(grasp_main, filename=grasp_filename, csv_file=grasp_csv_file)
+    compare_two_algorithm(alg1_csv_file=greedy_csv_file, alg2_csv_file=grasp_csv_file)
 
