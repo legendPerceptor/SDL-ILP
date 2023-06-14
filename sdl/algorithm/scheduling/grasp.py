@@ -90,7 +90,7 @@ class Grasp:
             if job_step_counter[selected_job_id] == len(selected_job):
                 job_finished[selected_job_id] = True
 
-        makespan = max(job_next_step_avail_time)
+        makespan = max(job_next_step_avail_time.values())
         self.Ms = Ms
         self.SJs = SJs
         # ms_dict = {i: m for i, m in enumerate(Ms)}

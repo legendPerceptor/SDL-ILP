@@ -126,15 +126,16 @@ def genetic_main(
 
     # makespan2, sjs2, ms2 = schedule_from_chromosome(machine_selection, operation_sequence, lab, jobs)
     start = perf_counter()
-    greedy_individual = build_greedy_individual(lab, jobs)
+    # greedy_individual = build_greedy_individual(lab, jobs)
     makespan2, sjs2, ms2, best_chromesome, fitness_history = \
-        genetic_solve(lab, jobs, random_state, initial_population=[greedy_individual], population_size=100,
+        genetic_solve(lab, jobs, random_state, initial_population=[], population_size=100,
                       max_generations=100)
     end = perf_counter()
 
     logging.info(f'The genetic algorithm found makespan: {makespan2}.')
     logging.info(f'Time taken (in seconds) to solve the genetic schedule: {end - start}.')
-    reconstructed_schedule = renderSchedule(ms2)
+    ms2_temp = {i+1: ms2[i] for i, _ in enumerate(ms2)}
+    reconstructed_schedule = renderSchedule(ms2_temp)
     # plotAll(reconstructed_schedule, machines, jobs, op_durations, makespan2, 'reconstructed-schedule-genetic.png')
     if storage is not None:
         storage.set_data(lab, jobs, reconstructed_schedule, makespan2, end - start)
@@ -396,7 +397,8 @@ if __name__ == '__main__':
     grasp_csv_file = 'data/grasp/grasp_makespan.csv'
 
 
-    unoptimized_genetic_filename = 'data/genetic_makespan-{index}.pkl'
+    unoptimized_genetic_filename = 'data/unoptimized_genetic/genetic_makespan-{index}.pkl'
+    unoptimized_genetic_csv_file = 'data/unoptimized_genetic/genetic_makespan.csv'
     dummy_heuristic_filename = 'data/dummy_heuristic/dummy_heuristic_makespan-{index}.pkl'
     dummy_heuristic_csv_file = 'data/dummy_heuristic/dummy_heuristic.csv'
 
@@ -404,6 +406,9 @@ if __name__ == '__main__':
     # for n_trial in range(4):
     #     greedy_csv_file = Path(f'data/greedy/greedy_sensitivity-apr19-{n_trial}.csv')
     #     test_sensitivity(greedy_main, filename=greedy_filename, csv_file=greedy_csv_file)
+
+    # test_storage_plot_performance(genetic_main, filename=unoptimized_genetic_filename,
+    #                               csv_file=unoptimized_genetic_csv_file)
 
     # test_storage_plot_performance(genetic_main, filename=optimized_genetic_filename,
     #                               csv_file=optimized_genetic_csv_file)
@@ -414,6 +419,7 @@ if __name__ == '__main__':
     #                               csv_file=greedy_csv_file)
     # test_storage_plot_performance(dummy_heuristic_main, filename=dummy_heuristic_filename,
     #                               csv_file=dummy_heuristic_csv_file)
+
     test_storage_plot_performance(grasp_main, filename=grasp_filename, csv_file=grasp_csv_file)
-    compare_two_algorithm(alg1_csv_file=greedy_csv_file, alg2_csv_file=grasp_csv_file)
+    # compare_two_algorithm(alg1_csv_file=greedy_csv_file, alg2_csv_file=grasp_csv_file)
 
